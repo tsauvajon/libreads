@@ -1,4 +1,12 @@
-##
+## LibReads
+
+LibReads is a tool used to simplify finding download links, from LibGen, of books found on Goodreads.
+
+In: a Goodreads book URL.
+Out: an IPFS download link for the book, hopefully with the Mobi format, or in other good formats
+if available.
+
+Of course, you need to only use this for public domain books, not for any copyrighted material.
 
 ### 1: Find the ISBN from Goodreads
 
