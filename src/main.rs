@@ -1,28 +1,48 @@
-mod find_isbn;
+mod goodreads;
 mod libgen;
 
-use scraper::Html;
 use tokio;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    libgen::get_metadata("Pride and Prejudice")?;
-
-    goodreads().await
+async fn main() -> Result<(), Error> {
+    process("https://www.goodreads.com/book/show/1048424.Governing_the_Commons").await
 }
 
-async fn goodreads() -> Result<(), Box<dyn std::error::Error>> {
-    let body = reqwest::get("https://www.goodreads.com/book/show/1048424.Governing_the_Commons")
-        .await?
-        .text()
-        .await?;
+async fn process(goodreads_book_url: &str) -> Result<(), Error> {
+    let (isbn10, isbn13) = goodreads::get_isbn(goodreads_book_url).await?;
 
-    let document = Html::parse_document(&body);
-    let isbn = find_isbn::find_isbn_10(&document);
-    let isbn13 = find_isbn::find_isbn_13(&document);
+    println!("ISBN10: {:?}, ISBN13: {:?}", isbn10, isbn13);
 
-    println!("{:?}", isbn);
-    println!("{:?}", isbn13);
+    let isbn = if let Some(isbn) = isbn13 {
+        isbn
+    } else if let Some(isbn) = isbn10 {
+        isbn
+    } else {
+        return Err("No ISBN found on this page")?;
+    };
+
+    let book_metadata = libgen::get_metadata(isbn.as_str()).await?;
+    if book_metadata.is_none() {
+        return Err("Nothing found on LibGen for this book")?;
+    }
 
     Ok(())
+}
+
+#[derive(Debug)]
+enum Error {
+    HttpError(String),
+    ApplicationError(String),
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Self {
+        Error::HttpError(err.to_string())
+    }
+}
+
+impl From<&str> for Error {
+    fn from(err: &str) -> Self {
+        Error::ApplicationError(err.to_string())
+    }
 }

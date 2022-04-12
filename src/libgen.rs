@@ -1,47 +1,55 @@
-use pyo3::prelude::*;
+use serde::Deserialize;
 
-const LIBGEN_API_MODULE_NAME: &str = "libgen_api";
-const LIBGEN_SEARCH_CLASS_NAME: &str = "LibgenSearch";
-const SEARCH_TITLE_METHOD_NAME: &str = "search_title";
+// Request:
+// http://libgen.rs/json.php?isbn=9788853001351&fields=Title,Author,Year,Extension,MD5
+//
+// Response:
+// [{"title":"Pride and Prejudice","author":"Jane Austen","year":"2000","extension":"pdf","md5":"ab13556b96d473c8dfad7165c4704526"}]
 
-pub fn get_metadata(isbn: &str) -> PyResult<()> {
-    Python::with_gil(|py| {
-        let libgen_api_module = py.import(LIBGEN_API_MODULE_NAME).unwrap();
-        let libgen_search_class = libgen_api_module.getattr(LIBGEN_SEARCH_CLASS_NAME).unwrap();
-        let libgen_search = libgen_search_class.call0().unwrap();
+const BASE_URL: &str = "http://libgen.rs/json.php";
 
-        let results = libgen_search
-            .call_method1(SEARCH_TITLE_METHOD_NAME, (isbn,))
-            .unwrap();
+#[derive(Deserialize, Clone)]
+pub struct LibgenMetadata {
+    pub title: String,
+    pub author: String,
+    pub year: String,
+    pub extension: String, // TODO: enum
+    pub md5: String,
+}
 
-        // TODO:
-        // - find the most relevant result
-        // - call libgen_search.resolve_download_links(_) on it
+pub enum _Extension {
+    Mobi,
+    Epub,
+}
 
-        println!("results: {:?}", results);
+pub async fn get_metadata(isbn: &str) -> Result<Option<LibgenMetadata>, reqwest::Error> {
+    let url = format!(
+        "{base_url}?isbn={isbn}&fields=Title,Author,Year,Extension,MD5",
+        base_url = BASE_URL,
+        isbn = isbn,
+    );
 
-        // let house = libgen_search_class.call1(("123 Main Street",)).unwrap();
+    let mut response: Vec<LibgenMetadata> = reqwest::get(url).await?.json().await?;
+    if response.is_empty() {
+        return Ok(None);
+    }
 
-        // house.call_method0("__enter__").unwrap();
+    response.sort_by(|a, b| a.extension.cmp(&b.extension));
 
-        // let result = py.eval("undefined_variable + 1", None, None);
+    Ok(Some(response[0].clone()))
+}
 
-        // // If the eval threw an exception we'll pass it through to the context manager.
-        // // Otherwise, __exit__  is called with empty arguments (Python "None").
-        // match result {
-        //     Ok(_) => {
-        //         let none = py.None();
-        //         house
-        //             .call_method1("__exit__", (&none, &none, &none))
-        //             .unwrap();
-        //     }
-        //     Err(e) => {
-        //         house
-        //             .call_method1("__exit__", (e.get_type(py), e.value(py), e.traceback(py)))
-        //             .unwrap();
-        //     }
-        // }
-    });
+#[tokio::test]
+async fn test_ok() {
+    // /!\ This test calls the LibGen API!!
+    // TODO: mock instead
 
-    Ok(())
+    let got = get_metadata("9788853001351")
+        .await
+        .expect("The call to LibGen should succeed");
+    assert!(got.is_some());
+    let got = got.unwrap();
+
+    assert_eq!("Pride and Prejudice", got.title.as_str());
+    assert_eq!("Jane Austen", got.author.as_str());
 }

@@ -3,7 +3,19 @@
 
 use scraper::{Html, Selector};
 
-pub fn find_isbn_10(fragment: &Html) -> Option<String> {
+type IsbnResult = (Option<String>, Option<String>);
+
+pub async fn get_isbn(page_url: &str) -> Result<IsbnResult, reqwest::Error> {
+    let body = reqwest::get(page_url).await?.text().await?;
+
+    let document = Html::parse_document(&body);
+    let isbn10 = find_isbn_10(&document);
+    let isbn13 = find_isbn_13(&document);
+
+    Ok((isbn10, isbn13))
+}
+
+fn find_isbn_10(fragment: &Html) -> Option<String> {
     let selector = Selector::parse(r#"span[itemprop="isbn"]"#).ok()?;
     let span = fragment.select(&selector).next()?;
     let div = span.parent()?.parent()?;
@@ -12,7 +24,7 @@ pub fn find_isbn_10(fragment: &Html) -> Option<String> {
     Some(content.trim().to_string())
 }
 
-pub fn find_isbn_13(fragment: &Html) -> Option<String> {
+fn find_isbn_13(fragment: &Html) -> Option<String> {
     let selector = Selector::parse(r#"span[itemprop="isbn"]"#).ok()?;
     let span = fragment.select(&selector).next()?;
     Some(span.text().collect())
