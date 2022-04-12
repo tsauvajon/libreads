@@ -70,3 +70,12 @@ to convert my Epub books into Mobi
 ## 5. Sending to Kindle
 
 TODO
+
+
+# Todos
+
+Always fall back:
+- if all download links fail for a book, pick the next one in the list instead of exiting
+- if we can't find the MD5, the librarylol link or anything else for a book, use the next one
+- if we can't find the book by ISBN, find it by title and author
+- if we can't find the ISBN on Goodreads, same as above

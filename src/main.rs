@@ -1,5 +1,6 @@
 mod goodreads;
 mod libgen;
+mod library;
 
 use tokio;
 
@@ -11,21 +12,33 @@ async fn main() -> Result<(), Error> {
 async fn process(goodreads_book_url: &str) -> Result<(), Error> {
     let (isbn10, isbn13) = goodreads::get_isbn(goodreads_book_url).await?;
 
-    println!("ISBN10: {:?}, ISBN13: {:?}", isbn10, isbn13);
-
     let isbn = if let Some(isbn) = isbn13 {
+        println!("Using ISBN13: {}", isbn);
         isbn
     } else if let Some(isbn) = isbn10 {
+        println!("Using ISBN10: {}", isbn);
         isbn
     } else {
         return Err("No ISBN found on this page")?;
     };
 
     let books_metadata = libgen::get_metadata(isbn.as_str()).await?;
-    let book_metadata = libgen::find_most_relevant(&books_metadata);
-    if book_metadata.is_none() {
-        return Err("Nothing found on LibGen for this book")?;
-    }
+    let book_metadata = match libgen::find_most_relevant(&books_metadata) {
+        None => return Err("Nothing found on LibGen for this book")?,
+        Some(book_metadata) => book_metadata,
+    };
+
+    println!(
+        "Formats found: {:?} -> {:?} selected",
+        books_metadata
+            .iter()
+            .map(|book| &book.extension)
+            .collect::<Vec<_>>(),
+        &book_metadata.extension
+    );
+
+    let download_links = library::get_download_links(book_metadata.md5.as_str()).await?;
+    println!("IPFS.io download link: {}", download_links.ipfs_dot_io);
 
     Ok(())
 }
