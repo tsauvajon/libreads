@@ -21,7 +21,8 @@ async fn process(goodreads_book_url: &str) -> Result<(), Error> {
         return Err("No ISBN found on this page")?;
     };
 
-    let book_metadata = libgen::get_metadata(isbn.as_str()).await?;
+    let books_metadata = libgen::get_metadata(isbn.as_str()).await?;
+    let book_metadata = libgen::find_most_relevant(&books_metadata);
     if book_metadata.is_none() {
         return Err("Nothing found on LibGen for this book")?;
     }

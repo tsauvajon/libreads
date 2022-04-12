@@ -48,19 +48,25 @@ http://library.lol/main/AB13556B96D473C8DFAD7165C4704526
 The last part looks like a hash or an ID of some sort. By querying the LibGen API,
 I was able to find that `AB13556B96D473C8DFAD7165C4704526` is the MD5 hash of the book.
 
-The page contains an HTTP download link, and four IPFS download links, which is exactly
-what I need.
+The page contains some download links.
 
-## Downloading the books
+## 3. Download the books
 
-IPFS.io > Cloudflare > Infura > Pinata > HTTP
+As explained above, the library.lol page contains an HTTP download link, and
+four IPFS download links, which is exactly what I need.
 
-## Convert books to Mobi
+My priority for these links is:
+IPFS.io > Cloudflare > Infura > Pinata > HTTP.
+
+In other words, I'll try downloading the book from IPFS.io, if the download fails
+for any reason, fall back to Cloudflare etc.
+
+## 4. Convert books to Mobi
 
 I need to dig further into it, but I generally use Calibre to convert ebooks from Epub to Mobi.
 I'm thinking of giving https://manual.calibre-ebook.com/generated/en/ebook-convert.html#mobi-output-options a try,
 to convert my Epub books into Mobi
 
-## Sending to Kindle
+## 5. Sending to Kindle
 
 TODO
