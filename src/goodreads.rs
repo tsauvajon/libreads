@@ -1,4 +1,4 @@
-//! Crate find_isbn can find ISBN numbers (10 and 13) in a Goodreads HTML page
+//! Module goodreads can find ISBN numbers (10 and 13) in a Goodreads HTML page
 //! for a book.
 
 use scraper::{Html, Selector};

@@ -1,3 +1,8 @@
+//! Module download_registry can find download links for a book.
+//!
+//! In the current implementation, it takes a book MD5 hash from LibGen,
+//! and finds the download links in http://library.lol
+
 use scraper::{Html, Selector};
 
 const BASE_URL: &str = "http://library.lol/main";

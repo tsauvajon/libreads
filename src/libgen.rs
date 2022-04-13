@@ -1,11 +1,15 @@
+//! Module libgen can find book metadata from their ISBN, and return a list
+//! of search matches sorted by relevance for this application. It leverages
+//! the LibGen API for that.
+//!
+//! Example request:
+//! http://libgen.rs/json.php?isbn=9788853001351&fields=Title,Author,Year,Extension,MD5
+//!
+//! Example response:
+//! [{"title":"Pride and Prejudice","author":"Jane Austen","year":"2000","extension":"pdf","md5":"ab13556b96d473c8dfad7165c4704526"}]
+
 use serde::{de, Deserialize, Deserializer};
 use serde_json::Value;
-
-// Request:
-// http://libgen.rs/json.php?isbn=9788853001351&fields=Title,Author,Year,Extension,MD5
-//
-// Response:
-// [{"title":"Pride and Prejudice","author":"Jane Austen","year":"2000","extension":"pdf","md5":"ab13556b96d473c8dfad7165c4704526"}]
 
 const BASE_URL: &str = "http://libgen.rs/json.php";
 

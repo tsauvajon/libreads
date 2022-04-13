@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/tsauvajon/libreads/branch/master/graph/badge.svg?token=dmbsZKZho2)](https://codecov.io/gh/tsauvajon/libreads)
+
 ## LibReads
 
 LibReads is a tool used to simplify finding download links, from LibGen, of books found on Goodreads.
