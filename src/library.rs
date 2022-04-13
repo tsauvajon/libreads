@@ -25,12 +25,12 @@ async fn test_get_download_links() {
 }
 
 fn extract_links(fragment: &Html) -> DownloadLinks {
-    let a_selector = Selector::parse(r#"div[id="download"] a"#).unwrap();
     let links: Vec<String> = fragment
-        .select(&a_selector)
+        .select(&Selector::parse(r#"div[id="download"] a"#).unwrap())
         .map(|element| element.value().attr("href").unwrap().to_string())
         .collect();
 
+    // TODO: return a HashMap of ["name" => "link"] instead?
     DownloadLinks {
         http: links.get(0).unwrap().to_owned(),
         cloudflare: links.get(1).unwrap().to_owned(),

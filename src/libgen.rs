@@ -130,12 +130,9 @@ pub async fn get_metadata(isbn: &str) -> Result<Vec<LibgenMetadata>, reqwest::Er
 }
 
 #[tokio::test]
+#[ignore = "This test calls the LibGen API, don't run it with every file change"]
+// TODO: mock instead
 async fn test_get_metadata_from_libgen_api() {
-    // /!\ This test calls the LibGen API!!
-    // TODO: mock instead
-
-    return; // temporary skip not to spam the API
-
     let got = get_metadata("9788853001351")
         .await
         .expect("The call to LibGen should succeed");
@@ -155,8 +152,6 @@ pub fn find_most_relevant(books_metadata: &Vec<LibgenMetadata>) -> Option<Libgen
     }
 
     let mut books_metadata = books_metadata.clone();
-
-    // TODO: Mobi > Epub > AZW3 > [other formats that make sense] > PDF.
     books_metadata.sort_by(|a, b| a.extension.cmp(&b.extension));
 
     Some(books_metadata[0].clone())
