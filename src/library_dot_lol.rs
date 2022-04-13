@@ -3,6 +3,7 @@
 //! In the current implementation, it takes a book MD5 hash from LibGen,
 //! and finds the download links in http://library.lol
 
+use async_trait::async_trait;
 use scraper::{Html, Selector};
 
 const BASE_URL: &str = "http://library.lol/main";
@@ -16,17 +17,49 @@ pub struct DownloadLinks {
     pub http: String,
 }
 
-pub async fn get_download_links(id: &str) -> Result<DownloadLinks, reqwest::Error> {
-    let page_url = format!("{base_url}/{id}", base_url = BASE_URL, id = id);
-    let body = reqwest::get(page_url).await?.text().await?;
-    let document = Html::parse_document(&body);
+#[async_trait]
+#[cfg_attr(test, mockall::automock)]
+pub trait DownloadLinksStore {
+    async fn get_download_links(&self, id: &str) -> Result<DownloadLinks, reqwest::Error>;
+}
 
-    Ok(extract_links(&document))
+pub struct LibraryDotLol {}
+
+#[async_trait]
+impl DownloadLinksStore for LibraryDotLol {
+    async fn get_download_links(&self, id: &str) -> Result<DownloadLinks, reqwest::Error> {
+        let page_url = format!("{base_url}/{id}", base_url = BASE_URL, id = id);
+        let body = reqwest::get(page_url).await?.text().await?;
+        let document = Html::parse_document(&body);
+
+        Ok(extract_links(&document))
+    }
 }
 
 #[tokio::test]
-async fn test_get_download_links() {
-    let _got = get_download_links("AB13556B96D473C8DFAD7165C4704526").await;
+#[ignore = "It calls the webpage, don't run it by default"]
+async fn integration_test_get_download_links() {
+    let got = LibraryDotLol::default()
+        .get_download_links("AB13556B96D473C8DFAD7165C4704526")
+        .await;
+
+    assert!(got.is_ok());
+    assert_eq!(
+        DownloadLinks {
+            cloudflare: "https://cloudflare-ipfs.com/ipfs/bafykbzacedotjioda7arles2s7gyc74hppa3owagm4hmohz4ye574omtalsoc?filename=Jane%20Austen%20-%20Pride%20and%20Prejudice-CIDEB%20%282000%29.pdf".to_string(),
+            ipfs_dot_io: "https://ipfs.io/ipfs/bafykbzacedotjioda7arles2s7gyc74hppa3owagm4hmohz4ye574omtalsoc?filename=Jane%20Austen%20-%20Pride%20and%20Prejudice-CIDEB%20%282000%29.pdf".to_string(),
+            infura: "https://ipfs.infura.io/ipfs/bafykbzacedotjioda7arles2s7gyc74hppa3owagm4hmohz4ye574omtalsoc?filename=Jane%20Austen%20-%20Pride%20and%20Prejudice-CIDEB%20%282000%29.pdf".to_string(),
+            pinata: "https://gateway.pinata.cloud/ipfs/bafykbzacedotjioda7arles2s7gyc74hppa3owagm4hmohz4ye574omtalsoc?filename=Jane%20Austen%20-%20Pride%20and%20Prejudice-CIDEB%20%282000%29.pdf".to_string(),
+            http: "http://31.42.184.140/main/316000/ab13556b96d473c8dfad7165c4704526/Jane%20Austen%20-%20Pride%20and%20Prejudice-CIDEB%20%282000%29.pdf".to_string(),
+        },
+        got.unwrap(),
+    )
+}
+
+impl Default for LibraryDotLol {
+    fn default() -> Self {
+        Self {}
+    }
 }
 
 fn extract_links(fragment: &Html) -> DownloadLinks {

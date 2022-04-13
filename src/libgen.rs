@@ -8,10 +8,17 @@
 //! Example response:
 //! [{"title":"Pride and Prejudice","author":"Jane Austen","year":"2000","extension":"pdf","md5":"ab13556b96d473c8dfad7165c4704526"}]
 
+use async_trait::async_trait;
 use serde::{de, Deserialize, Deserializer};
 use serde_json::Value;
 
 const BASE_URL: &str = "http://libgen.rs/json.php";
+
+#[async_trait]
+#[cfg_attr(test, mockall::automock)]
+pub trait MetadataStore {
+    async fn get_metadata(&self, isbn: &str) -> Result<Vec<LibgenMetadata>, reqwest::Error>;
+}
 
 #[derive(Deserialize, Clone, Debug, PartialEq)]
 pub struct LibgenMetadata {
@@ -32,6 +39,100 @@ pub enum Extension {
     Pdf,
     Doc,
     Other(String),
+}
+
+pub struct Libgen {}
+
+#[async_trait]
+impl MetadataStore for Libgen {
+    async fn get_metadata(&self, isbn: &str) -> Result<Vec<LibgenMetadata>, reqwest::Error> {
+        let url = format!(
+            "{base_url}?isbn={isbn}&fields=Title,Author,Year,Extension,MD5",
+            base_url = BASE_URL,
+            isbn = isbn,
+        );
+
+        reqwest::get(url).await?.json().await
+    }
+}
+
+#[tokio::test]
+#[ignore = "This test calls the LibGen API, don't run it with every file change"]
+async fn integration_test_get_metadata_from_libgen_api() {
+    let got = Libgen::default()
+        .get_metadata("9788853001351")
+        .await
+        .expect("The call to LibGen should succeed");
+    assert_eq!(1, got.len());
+    let got = &got[0];
+
+    assert_eq!("Pride and Prejudice", got.title.as_str());
+    assert_eq!("Jane Austen", got.author.as_str());
+    assert_eq!(Extension::Pdf, got.extension);
+
+    println!("{:?}", got);
+}
+
+impl Default for Libgen {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+pub fn find_most_relevant(books_metadata: &Vec<LibgenMetadata>) -> Option<LibgenMetadata> {
+    if books_metadata.is_empty() {
+        return None;
+    }
+
+    let mut books_metadata = books_metadata.clone();
+    books_metadata.sort_by(|a, b| a.extension.cmp(&b.extension));
+
+    Some(books_metadata[0].clone())
+}
+
+#[test]
+fn test_find_most_relevant() {
+    let books_metadata = vec![
+        LibgenMetadata {
+            title: "Pride and Prejudice".to_string(),
+            author: "Jane Austen".to_string(),
+            year: "2000".to_string(),
+            extension: Extension::Pdf,
+            md5: "ABCD".to_string(),
+        },
+        LibgenMetadata {
+            title: "Pride and Prejudice".to_string(),
+            author: "Jane Austen".to_string(),
+            year: "2000".to_string(),
+            extension: Extension::Azw3,
+            md5: "EF12".to_string(),
+        },
+        // This is the most relevant, because it has the Mobi extension.
+        LibgenMetadata {
+            title: "Pride and Prejudice".to_string(),
+            author: "Jane Austen".to_string(),
+            year: "2000".to_string(),
+            extension: Extension::Mobi,
+            md5: "3456".to_string(),
+        },
+        LibgenMetadata {
+            title: "Pride and Prejudice".to_string(),
+            author: "Jane Austen".to_string(),
+            year: "2000".to_string(),
+            extension: Extension::Epub,
+            md5: "7890".to_string(),
+        },
+    ];
+
+    assert_eq!(
+        Some(books_metadata[2].clone()),
+        find_most_relevant(&books_metadata)
+    )
+}
+
+#[test]
+fn test_find_most_relevant_no_books() {
+    assert_eq!(None, find_most_relevant(&vec![]));
 }
 
 impl<'de> Deserialize<'de> for Extension {
@@ -121,87 +222,4 @@ fn test_sort_extensions() {
         ],
         extensions
     );
-}
-
-pub async fn get_metadata(isbn: &str) -> Result<Vec<LibgenMetadata>, reqwest::Error> {
-    let url = format!(
-        "{base_url}?isbn={isbn}&fields=Title,Author,Year,Extension,MD5",
-        base_url = BASE_URL,
-        isbn = isbn,
-    );
-
-    reqwest::get(url).await?.json().await
-}
-
-#[tokio::test]
-#[ignore = "This test calls the LibGen API, don't run it with every file change"]
-// TODO: mock instead
-async fn test_get_metadata_from_libgen_api() {
-    let got = get_metadata("9788853001351")
-        .await
-        .expect("The call to LibGen should succeed");
-    assert_eq!(1, got.len());
-    let got = &got[0];
-
-    assert_eq!("Pride and Prejudice", got.title.as_str());
-    assert_eq!("Jane Austen", got.author.as_str());
-    assert_eq!(Extension::Pdf, got.extension);
-
-    println!("{:?}", got);
-}
-
-pub fn find_most_relevant(books_metadata: &Vec<LibgenMetadata>) -> Option<LibgenMetadata> {
-    if books_metadata.is_empty() {
-        return None;
-    }
-
-    let mut books_metadata = books_metadata.clone();
-    books_metadata.sort_by(|a, b| a.extension.cmp(&b.extension));
-
-    Some(books_metadata[0].clone())
-}
-
-#[test]
-fn test_find_most_relevant() {
-    let books_metadata = vec![
-        LibgenMetadata {
-            title: "Pride and Prejudice".to_string(),
-            author: "Jane Austen".to_string(),
-            year: "2000".to_string(),
-            extension: Extension::Pdf,
-            md5: "ABCD".to_string(),
-        },
-        LibgenMetadata {
-            title: "Pride and Prejudice".to_string(),
-            author: "Jane Austen".to_string(),
-            year: "2000".to_string(),
-            extension: Extension::Azw3,
-            md5: "EF12".to_string(),
-        },
-        // This is the most relevant, because it has the Mobi extension.
-        LibgenMetadata {
-            title: "Pride and Prejudice".to_string(),
-            author: "Jane Austen".to_string(),
-            year: "2000".to_string(),
-            extension: Extension::Mobi,
-            md5: "3456".to_string(),
-        },
-        LibgenMetadata {
-            title: "Pride and Prejudice".to_string(),
-            author: "Jane Austen".to_string(),
-            year: "2000".to_string(),
-            extension: Extension::Epub,
-            md5: "7890".to_string(),
-        },
-    ];
-
-    assert_eq!(
-        Some(books_metadata[2].clone()),
-        find_most_relevant(&books_metadata)
-    )
-}
-
-#[test]
-fn test_find_most_relevant_no_books() {
-    assert_eq!(None, find_most_relevant(&vec![]));
 }
