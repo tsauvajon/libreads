@@ -212,12 +212,12 @@ mod tests {
             .expect_get_isbn()
             .with(eq("http://hello.world"))
             .once()
-            .returning(move |_| Box::pin(async { Ok((None, Some("fake_isbn_13".to_string()))) }));
+            .returning(move |_| Box::pin(async { Ok((Some("fake_isbn_10".to_string()), None)) }));
 
         let mut metadata_store_mock = MockMetadataStore::new();
         metadata_store_mock
             .expect_get_metadata()
-            .with(eq("fake_isbn_13"))
+            .with(eq("fake_isbn_10"))
             .once()
             .returning(move |_| {
                 Box::pin(async {
