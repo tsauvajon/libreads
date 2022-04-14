@@ -78,10 +78,6 @@ pub async fn download_as(
     std::fs::remove_file(&in_filename).expect("Delete input file");
 
     let output = String::from_utf8_lossy(&output.stdout);
-    if output.contains("Cannot read from") {
-        return Err("File not found".to_string());
-    }
-
     if !output.contains("Output saved to") {
         // Something probably went wrong.
         // We return the full command output as an error.
@@ -102,6 +98,19 @@ async fn convert() {
 
     let output_filename = download_as(book, Extension::Mobi).await.unwrap();
     std::fs::remove_file(output_filename).expect("Delete output file");
+}
+
+#[tokio::test]
+#[ignore = "This does a real HTTP call to a 3rd party server. TODO: mock that server."]
+async fn conversion_fails() {
+    let book = InputBookInfo {
+        title: "Dummy invalid ebook".to_string(),
+        extension: Extension::Djvu,
+        download_link: "https://google.com".to_string(), // This will return something that is definitely not a valid Djvu file
+    };
+
+    let got = download_as(book, Extension::Mobi).await;
+    assert!(got.is_err());
 }
 
 async fn download(url: &str, filename: &str) -> Result<(), reqwest::Error> {
