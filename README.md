@@ -94,6 +94,8 @@ TODO
 
 # Todos
 
+Use Cargo Chef to cache dependencies and speed up builds.
+
 Always fall back:
 - if all download links fail for a book, pick the next one in the list instead of exiting
 - if we can't find the MD5, the librarylol link or anything else for a book, use the next one

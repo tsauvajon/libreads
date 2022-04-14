@@ -10,6 +10,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Install Calibre
+        run: sudo -v && wget --no-check-certificate -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
+        # TODO: cache me
+
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -20,7 +24,7 @@ jobs:
         uses: actions-rs/tarpaulin@v0.1
         with:
           version: '0.18.0'
-          args: '--exclude-files src/main.rs -- --include-ignored' # Run the ignored test as well
+          args: '--exclude-files src/main.rs -- --show-output --include-ignored' # Run the ignored test as well
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v1.0.2
