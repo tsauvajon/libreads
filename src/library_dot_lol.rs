@@ -23,6 +23,7 @@ pub trait DownloadLinksStore {
     async fn get_download_links(&self, id: &str) -> Result<DownloadLinks, reqwest::Error>;
 }
 
+#[derive(Default)]
 pub struct LibraryDotLol {}
 
 #[async_trait]
@@ -54,12 +55,6 @@ async fn integration_test_get_download_links() {
         },
         got.unwrap(),
     )
-}
-
-impl Default for LibraryDotLol {
-    fn default() -> Self {
-        Self {}
-    }
 }
 
 fn extract_links(fragment: &Html) -> DownloadLinks {

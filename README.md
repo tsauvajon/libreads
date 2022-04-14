@@ -10,6 +10,16 @@ if available.
 
 Of course, you need to only use this for public domain books, not for any copyrighted material.
 
+## Requirements
+
+You'll need [ebook-convert](https://manual.calibre-ebook.com/generated/en/ebook-convert.html) installed
+and available (hint: try `which ebook-convert`).
+
+You can install it on MacOS as part of the great [Calibre](https://calibre-ebook.com/) suite,
+with `brew install --cask calibre`.
+
+## What does it do? How does it work?
+
 ### 1: Find the ISBN from Goodreads
 
 - API is deprecated, they no longer give out API keys

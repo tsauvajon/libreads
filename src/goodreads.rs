@@ -12,6 +12,7 @@ pub trait IsbnGetter {
     async fn get_isbn(&self, page_url: &str) -> Result<IsbnResult, reqwest::Error>;
 }
 
+#[derive(Default)]
 pub struct Goodreads {}
 
 impl Goodreads {
@@ -41,12 +42,6 @@ impl IsbnGetter for Goodreads {
         let isbn13 = self.find_isbn_13(&document);
 
         Ok((isbn10, isbn13))
-    }
-}
-
-impl Default for Goodreads {
-    fn default() -> Self {
-        Self {}
     }
 }
 

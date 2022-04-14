@@ -41,6 +41,25 @@ pub enum Extension {
     Other(String),
 }
 
+impl std::fmt::Display for Extension {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match &self {
+                Extension::Mobi => "mobi",
+                Extension::Epub => "epub",
+                Extension::Azw3 => "azw3",
+                Extension::Djvu => "djvu",
+                Extension::Pdf => "pdf",
+                Extension::Doc => "doc",
+                Extension::Other(ext) => ext.as_str(),
+            }
+        )
+    }
+}
+
+#[derive(Default)]
 pub struct Libgen {}
 
 #[async_trait]
@@ -73,18 +92,12 @@ async fn integration_test_get_metadata_from_libgen_api() {
     println!("{:?}", got);
 }
 
-impl Default for Libgen {
-    fn default() -> Self {
-        Self {}
-    }
-}
-
-pub fn find_most_relevant(books_metadata: &Vec<LibgenMetadata>) -> Option<LibgenMetadata> {
+pub fn find_most_relevant(books_metadata: &[LibgenMetadata]) -> Option<LibgenMetadata> {
     if books_metadata.is_empty() {
         return None;
     }
 
-    let mut books_metadata = books_metadata.clone();
+    let mut books_metadata = books_metadata.to_owned();
     books_metadata.sort_by(|a, b| a.extension.cmp(&b.extension));
 
     Some(books_metadata[0].clone())
