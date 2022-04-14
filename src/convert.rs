@@ -68,14 +68,22 @@ pub async fn download_as(
 
     let out_filename = format!("{}.{}", title, wanted_extension);
     println!("Converting book to {:?}...", wanted_extension);
+    println!("[Debug] in: {}, out: {}", in_filename, out_filename);
+
+    println!(
+        "{}",
+        String::from_utf8_lossy(&Command::new("ls").output().unwrap().stdout)
+    );
+
     let output = Command::new(EBOOK_CONVERT_EXECUTABLE)
-        .arg(in_filename)
+        .arg(&in_filename)
         .arg(&out_filename)
         .output()
         .unwrap();
 
-    let output = String::from_utf8_lossy(&output.stdout);
+    std::fs::remove_file(&in_filename).expect("Delete input file");
 
+    let output = String::from_utf8_lossy(&output.stdout);
     if output.contains("Cannot read from") {
         return Err("File not found".to_string());
     }
@@ -98,7 +106,8 @@ async fn convert() {
         download_link: "https://cloudflare-ipfs.com/ipfs/bafykbzacedqn6erurfdw45jy4xbwldyh3ihqykr2kp3sx7knm6lslzcj66m76?filename=%28Political%20Economy%20of%20Institutions%20and%20Decisions%29%20Elinor%20Ostrom%20-%20Governing%20the%20Commons_%20The%20Evolution%20of%20Institutions%20for%20Collective%20Action%20%28Political%20Economy%20of%20Institutions%20and%20Decisions%29-Cambridge.djvu".to_string(),
     };
 
-    download_as(book, Extension::Mobi).await.unwrap();
+    let output_filename = download_as(book, Extension::Mobi).await.unwrap();
+    std::fs::remove_file(output_filename).expect("Delete output file");
 }
 
 async fn download(url: &str, filename: &str) -> Result<(), reqwest::Error> {
