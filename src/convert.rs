@@ -54,13 +54,11 @@ fn test_input_from_book_info() {
 pub async fn download_as(
     book: InputBookInfo,
     wanted_extension: Extension,
-) -> Result<String, String> {
+) -> Result<String, Error> {
     let title = sanitise_title(book.title.as_str());
 
     let in_filename = format!("{}.{}", title, book.extension);
-    if let Err(err) = download(book.download_link.as_str(), &in_filename).await {
-        return Err(err.to_string());
-    };
+    download(book.download_link.as_str(), &in_filename).await?;
 
     if book.extension == wanted_extension {
         return Ok(in_filename);
@@ -81,7 +79,9 @@ pub async fn download_as(
     if !output.contains("Output saved to") {
         // Something probably went wrong.
         // We return the full command output as an error.
-        return Err(String::from_utf8_lossy(output.as_bytes()).to_string());
+        return Err(Error::ConversionError(
+            String::from_utf8_lossy(output.as_bytes()).to_string(),
+        ));
     }
 
     Ok(out_filename)
@@ -113,12 +113,44 @@ async fn conversion_fails() {
     assert!(got.is_err());
 }
 
-async fn download(url: &str, filename: &str) -> Result<(), reqwest::Error> {
+#[tokio::test]
+#[ignore = "This does a real HTTP call to a 3rd party server. TODO: mock that server."]
+async fn returns_early_if_no_conversion_is_needed() {
+    let book = InputBookInfo {
+        title: "Dummy invalid ebook".to_string(),
+        extension: Extension::Djvu,
+        download_link: "https://google.com".to_string(), // This just needs to be an available endpoint, content doesn't matter.
+    };
+
+    let output_filename = download_as(book, Extension::Djvu)
+        .await
+        .expect("Should exit early and not perform validations");
+    std::fs::remove_file(output_filename).expect("Delete output file");
+}
+
+#[tokio::test]
+async fn propagates_reqwest_errors() {
+    let book = InputBookInfo {
+        title: "Dummy invalid ebook".to_string(),
+        extension: Extension::Djvu,
+        download_link: "malformed_url".to_string(),
+    };
+
+    let got = download_as(book, Extension::Djvu).await;
+    assert_eq!(
+        Err(Error::HttpError(
+            "builder error: relative URL without a base".to_string(),
+        )),
+        got
+    );
+}
+
+async fn download(url: &str, filename: &str) -> Result<(), Error> {
     println!("Downloading {}...", &filename);
 
     let resp = reqwest::get(url).await?;
-    let mut out = File::create(filename).expect("failed to create file");
-    io::copy(&mut resp.bytes().await?.as_ref(), &mut out).expect("failed to copy content");
+    let mut out = File::create(filename)?;
+    io::copy(&mut resp.bytes().await?.as_ref(), &mut out)?;
 
     Ok(())
 }
@@ -146,5 +178,24 @@ fn test_sanitise_title() {
         ("Héllô Wørld¶¶", "Héllô Wørld"),
     ] {
         assert_eq!(want, sanitise_title(title));
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Error {
+    IoError(String),
+    HttpError(String),
+    ConversionError(String),
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Self {
+        Error::HttpError(err.to_string())
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
+        Error::IoError(err.to_string())
     }
 }
