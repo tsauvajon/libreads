@@ -77,26 +77,36 @@ The page contains some download links.
 As explained above, the library.lol page contains an HTTP download link, and
 four IPFS download links, which is exactly what I need.
 
-My priority for these links is:
-IPFS.io > Cloudflare > Infura > Pinata > HTTP.
+Currently, we simply try to download the ebook from Cloudflare and exit if it fails.
 
-In other words, I'll try downloading the book from IPFS.io, if the download fails
-for any reason, fall back to Cloudflare etc.
+In the future, I plan to try downloading the book from Cloudflare, if the download fails
+for any reason, fall back to IPFS.io and keep falling back on other providers until
+we can get a working link.
+
+My priority for these links is:
+Cloudflare > IPFS.io > Infura > Pinata > HTTP.
 
 ## 4. Convert books to Mobi
 
-I need to dig further into it, but I generally use Calibre to convert ebooks from Epub to Mobi.
-I'm thinking of giving https://manual.calibre-ebook.com/generated/en/ebook-convert.html#mobi-output-options a try,
-to convert my Epub books into Mobi
+Calibre is an ebook-management tool. It provides a UI and command-line tools to manage
+user libraries, ebook metadata, conversion between formats and much more.
+This repository uses one command-line tool provided by Calibre,
+[ebook-convert](https://manual.calibre-ebook.com/generated/en/ebook-convert.html#mobi-output-options),
+to convert any ebook into the desired format. In my case, since I have a Kindle,
+the desired format is Mobi, while the input format can be anything (Epub, Azw3...).
 
 ## 5. Sending to Kindle
 
-TODO
+TODO.
+
+I think the only option there is to use the Kindle email address, and send the ebooks
+as attachments via e-mail.
 
 
 # Todos
 
-Use Cargo Chef to cache dependencies and speed up builds.
+Use Cargo Chef to cache dependencies and speed up builds, if possible. Or something else
+that fits the same need.
 
 Always fall back:
 - if all download links fail for a book, pick the next one in the list instead of exiting
