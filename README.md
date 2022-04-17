@@ -18,6 +18,8 @@ and available (hint: try `which ebook-convert`).
 You can install it on MacOS as part of the great [Calibre](https://calibre-ebook.com/) suite,
 with `brew install --cask calibre`.
 
+On Linux, you can install it with `sudo -v && wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin`. Since this runs an arbitrary `sh` file using `sudo`, you should definitely understand what you're doing before pasting that in a terminal. In doubt, check the [official guide](https://calibre-ebook.com/download_linux).
+
 ## What does it do? How does it work?
 
 ### 1: Find the ISBN from Goodreads
