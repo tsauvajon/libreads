@@ -155,6 +155,13 @@ async fn download(url: &str, filename: &str) -> Result<(), Error> {
     Ok(())
 }
 
+#[tokio::test]
+#[ignore = "This makes an HTTP request to a 3rd party, TODO = use a mock server instead"]
+async fn test_download_incorrect_filename() {
+    let got = download("https://google.com", "   /\\ Invalid file name").await;
+    assert_eq!(Err(Error::IoError("No such file or directory (os error 2)".to_string())), got,);
+}
+
 fn sanitise_title(title: &str) -> String {
     title
         .replace(|c: char| c.is_ascii_punctuation(), " ")

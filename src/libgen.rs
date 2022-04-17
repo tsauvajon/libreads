@@ -59,6 +59,28 @@ impl std::fmt::Display for Extension {
     }
 }
 
+#[test]
+fn test_display_extension() {
+    for (ext, want) in vec![
+        (Extension::Mobi, "mobi"),
+        (Extension::Epub, "epub"),
+        (Extension::Azw3, "azw3"),
+        (Extension::Djvu, "djvu"),
+        (Extension::Pdf, "pdf"),
+        (Extension::Doc, "doc"),
+        (Extension::Other("hello".to_string()), "hello"),
+        (Extension::Other("asdsfdsfds".to_string()), "asdsfdsfds"),
+        (Extension::Other("".to_string()), ""),
+    ] {
+        use std::io::Write;
+
+        let mut out = Vec::<u8>::new();
+        write!(out, "{}", ext).unwrap();
+        let got = String::from_utf8(out).unwrap();
+        assert_eq!(want, got);
+    }
+}
+
 #[derive(Default)]
 pub struct Libgen {}
 
