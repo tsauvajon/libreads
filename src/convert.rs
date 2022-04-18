@@ -86,75 +86,78 @@ pub async fn download_as(
     Ok(out_filename)
 }
 
-#[tokio::test]
-async fn convert() {
+#[cfg(test)]
+mod conversion_tests {
+    use super::*;
     use httpmock::{Method::GET, MockServer};
 
-    let mock_server = MockServer::start();
-    let endpoint_mock = mock_server.mock(|when, then| {
-        when.method(GET).path("/book.epub");
-        then.status(200)
-            .body(include_bytes!("../tests/testdata/dummy_ebook.epub"));
-    });
+    #[tokio::test]
+    #[ignore = "This test has to create and delete files, which chain-trigger cargo watch"]
+    async fn convert() {
+        let mock_server = MockServer::start();
+        let endpoint_mock = mock_server.mock(|when, then| {
+            when.method(GET).path("/book.epub");
+            then.status(200)
+                .body(include_bytes!("../tests/testdata/dummy_ebook.epub"));
+        });
 
-    let book = InputBookInfo {
-        title: "Governing the Commons".to_string(),
-        extension: Extension::Epub,
-        download_link: mock_server.url("/book.epub"),
-    };
+        let book = InputBookInfo {
+            title: "Governing the Commons".to_string(),
+            extension: Extension::Epub,
+            download_link: mock_server.url("/book.epub"),
+        };
 
-    let output_filename = download_as(book, Extension::Mobi).await.unwrap();
-    std::fs::remove_file(output_filename).expect("Delete output file");
-    endpoint_mock.assert();
-}
+        let output_filename = download_as(book, Extension::Mobi).await.unwrap();
+        std::fs::remove_file(output_filename).expect("Delete output file");
+        endpoint_mock.assert();
+    }
 
-#[tokio::test]
-async fn conversion_fails() {
-    use httpmock::{Method::GET, MockServer};
+    #[tokio::test]
+    #[ignore = "This test has to create and delete files, which chain-trigger cargo watch"]
+    async fn conversion_fails() {
+        let mock_server = MockServer::start();
+        let endpoint_mock = mock_server.mock(|when, then| {
+            when.method(GET).path("/book.pdf");
+            then.status(200)
+                .body(include_bytes!("../tests/testdata/dummy_invalid_ebook.pdf"));
+        });
 
-    let mock_server = MockServer::start();
-    let endpoint_mock = mock_server.mock(|when, then| {
-        when.method(GET).path("/book.pdf");
-        then.status(200)
-            .body(include_bytes!("../tests/testdata/dummy_invalid_ebook.pdf"));
-    });
+        let book = InputBookInfo {
+            title: "Dummy invalid ebook 1".to_string(),
+            extension: Extension::Pdf,
+            download_link: mock_server.url("/book.pdf"),
+        };
 
-    let book = InputBookInfo {
-        title: "Dummy invalid ebook 1".to_string(),
-        extension: Extension::Pdf,
-        download_link: mock_server.url("/book.pdf"),
-    };
+        let got = download_as(book, Extension::Mobi).await;
+        assert!(got.is_err());
+        endpoint_mock.assert();
+    }
 
-    let got = download_as(book, Extension::Mobi).await;
-    assert!(got.is_err());
-    endpoint_mock.assert();
-}
+    #[tokio::test]
+    #[ignore = "This test has to create and delete files, which chain-trigger cargo watch"]
+    async fn returns_early_if_no_conversion_is_needed() {
+        let mock_server = MockServer::start();
+        let endpoint_mock = mock_server.mock(|when, then| {
+            when.method(GET).path("/book.pdf");
+            then.status(200)
+                .body(include_bytes!("../tests/testdata/dummy_invalid_ebook.pdf"));
+        });
 
-#[tokio::test]
-async fn returns_early_if_no_conversion_is_needed() {
-    use httpmock::{Method::GET, MockServer};
+        let book = InputBookInfo {
+            title: "Dummy invalid ebook 2".to_string(),
+            extension: Extension::Pdf,
+            download_link: mock_server.url("/book.pdf"),
+        };
 
-    let mock_server = MockServer::start();
-    let endpoint_mock = mock_server.mock(|when, then| {
-        when.method(GET).path("/book.pdf");
-        then.status(200)
-            .body(include_bytes!("../tests/testdata/dummy_invalid_ebook.pdf"));
-    });
-
-    let book = InputBookInfo {
-        title: "Dummy invalid ebook 2".to_string(),
-        extension: Extension::Pdf,
-        download_link: mock_server.url("/book.pdf"),
-    };
-
-    // Note: when the input format and output format are the same (here PDF),
-    // if should not try to perform any conversion.
-    // Therefore, it should not matter whether the ebook is valid or invalid.
-    let output_filename = download_as(book, Extension::Pdf)
-        .await
-        .expect("Should exit early and not perform validations");
-    std::fs::remove_file(output_filename).expect("Delete output file");
-    endpoint_mock.assert();
+        // Note: when the input format and output format are the same (here PDF),
+        // if should not try to perform any conversion.
+        // Therefore, it should not matter whether the ebook is valid or invalid.
+        let output_filename = download_as(book, Extension::Pdf)
+            .await
+            .expect("Should exit early and not perform validations");
+        std::fs::remove_file(output_filename).expect("Delete output file");
+        endpoint_mock.assert();
+    }
 }
 
 #[tokio::test]

@@ -1026,6 +1026,7 @@ dependencies = [
  "async-trait",
  "httpmock",
  "mockall",
+ "regex",
  "reqwest",
  "scraper",
  "serde",

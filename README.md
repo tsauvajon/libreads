@@ -72,6 +72,31 @@ I was able to find that `AB13556B96D473C8DFAD7165C4704526` is the MD5 hash of th
 
 The page contains some download links.
 
+#### Limitations
+
+You can only search by Libgen ID (which is, of course, completely useless) or ISBN. When
+you don't have the ISBN info, you're out of luck.
+
+I explored other APIs.
+https://developers.google.com/books/docs/v1/using can:
+- search for books by title and return their ISBN10 and ISBN13
+- provide download links for free ebooks
+
+It looks ok, but I
+don't like having to authenticate with Google because that means it's much harder for
+anyone to use "libreads" locally.
+
+
+The OpenLibrary API looks great, but it returns **tons** of results. For example,
+for "The Origin of Species", it returns hundreds of results, and each of them
+have hundreds of ISBNs, which would absolutely destroy the Libgen API if none
+of these ISBNs have been registered with Libgen.
+
+Example usable result: http://openlibrary.org/search.json?title=feeding+the+world&author=vaclav+smil
+
+Maybe I can collect all the ISBNs, deduplicate them, and try a limited number
+against the Liben API...
+
 ## 3. Download the books
 
 As explained above, the library.lol page contains an HTTP download link, and

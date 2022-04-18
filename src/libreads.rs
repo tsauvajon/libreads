@@ -5,13 +5,13 @@
 //! In other words, it acts as glue between the other modules in this repo.
 
 use crate::{
-    goodreads::{Goodreads, IsbnGetter},
+    goodreads::{BookIdentificationGetter, Goodreads},
     libgen::{self, Libgen, LibgenMetadata, MetadataStore},
     library_dot_lol::{DownloadLinks, DownloadLinksStore, LibraryDotLol},
 };
 
 pub struct LibReads {
-    isbn_getter: Box<dyn IsbnGetter>,
+    isbn_getter: Box<dyn BookIdentificationGetter>,
     metadata_store: Box<dyn MetadataStore>,
     download_links_store: Box<dyn DownloadLinksStore>,
 }
@@ -27,19 +27,15 @@ impl LibReads {
         &self,
         goodreads_book_url: &str,
     ) -> Result<BookInfo, Error> {
-        let (isbn10, isbn13) = self.isbn_getter.get_isbn(goodreads_book_url).await?;
+        let book_identification = self
+            .isbn_getter
+            .get_identification(goodreads_book_url)
+            .await?;
 
-        let isbn = if let Some(isbn) = isbn13 {
-            println!("Found ISBN13: {}", isbn);
-            isbn
-        } else if let Some(isbn) = isbn10 {
-            println!("Found ISBN10: {}", isbn);
-            isbn
-        } else {
-            return Err("No ISBN found on this page")?;
-        };
-
-        let books_metadata = self.metadata_store.get_metadata(isbn.as_str()).await?;
+        let books_metadata = self
+            .metadata_store
+            .get_metadata(&book_identification)
+            .await?;
         let book_metadata = match libgen::find_most_relevant(&books_metadata) {
             None => return Err("Nothing found on LibGen for this book")?,
             Some(book_metadata) => book_metadata,
@@ -88,6 +84,22 @@ impl From<reqwest::Error> for Error {
     }
 }
 
+impl From<libgen::Error> for Error {
+    fn from(err: libgen::Error) -> Self {
+        match err {
+            libgen::Error::MissingIndentificationInfo => Self::ApplicationError(
+                "Not enough info about the book found in this page".to_string(),
+            ),
+            libgen::Error::NoIsbn { title, author } => Self::ApplicationError(format!(
+                "No ISBN found for \"{title}\" by {author}",
+                title = title,
+                author = author
+            )),
+            libgen::Error::HttpError(err) => Self::HttpError(err),
+        }
+    }
+}
+
 impl From<&str> for Error {
     fn from(err: &str) -> Self {
         Error::ApplicationError(err.to_string())
@@ -96,15 +108,14 @@ impl From<&str> for Error {
 
 #[cfg(test)]
 mod tests {
-    use std::vec;
-
     use super::*;
     use crate::{
-        goodreads::MockIsbnGetter,
+        goodreads::{BookIdentification, MockBookIdentificationGetter},
         libgen::{Extension, LibgenMetadata, MockMetadataStore},
         library_dot_lol::MockDownloadLinksStore,
     };
     use mockall::predicate::eq;
+    use std::vec;
 
     #[tokio::test]
     #[ignore = "This test calls live web pages and APIs, no need to run it with every file save."]
@@ -127,26 +138,39 @@ mod tests {
     }
 
     #[tokio::test]
+    // TODO: make this test simpler (split into several smaller tests)
     async fn test_get_download_links_no_isbn_found() {
-        let mut isbn_getter_mock = MockIsbnGetter::new();
+        let mut isbn_getter_mock = MockBookIdentificationGetter::new();
         isbn_getter_mock
-            .expect_get_isbn()
+            .expect_get_identification()
             .with(eq("http://hello.world"))
             .once()
-            .returning(move |_| Box::pin(async { Ok((None, None)) }));
+            .returning(move |_| {
+                Box::pin(async {
+                    Ok(BookIdentification {
+                        isbn10: None,
+                        isbn13: None,
+                        title: None,
+                        author: None,
+                    })
+                })
+            });
 
         let libreads = LibReads {
             isbn_getter: Box::new(isbn_getter_mock),
-            metadata_store: Box::new(MockMetadataStore::new()),
+            metadata_store: Box::new(Libgen::default()),
             download_links_store: Box::new(MockDownloadLinksStore::new()),
         };
         let got = libreads
             .get_book_info_from_goodreads_url("http://hello.world")
             .await;
 
+        assert!(got.is_err());
+        println!("{:?}", got);
+
         assert_eq!(
             Err(Error::ApplicationError(
-                "No ISBN found on this page".to_string()
+                "Not enough info about the book found in this page".to_string()
             )),
             got
         );
@@ -154,15 +178,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_download_links_propagates_reqwest_errors() {
-        let mut isbn_getter_mock = MockIsbnGetter::new();
+        let mut isbn_getter_mock = MockBookIdentificationGetter::new();
         isbn_getter_mock
-            .expect_get_isbn()
+            .expect_get_identification()
             .with(eq("http://hello.world"))
             .once()
             .returning(move |_| {
                 Box::pin(async {
                     reqwest::get("bad_url").await?; // This is the only way I found of returning a reqwest::Error. TODO: change the implementation of `get_isbn` to wrap the error in a custom type instead.
-                    Ok((None, None))
+                    Ok(BookIdentification {
+                        isbn10: None,
+                        isbn13: None,
+                        title: None,
+                        author: None,
+                    })
                 })
             });
 
@@ -185,17 +214,31 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_download_links_nothing_found_on_libgen() {
-        let mut isbn_getter_mock = MockIsbnGetter::new();
+        let mut isbn_getter_mock = MockBookIdentificationGetter::new();
         isbn_getter_mock
-            .expect_get_isbn()
+            .expect_get_identification()
             .with(eq("http://hello.world"))
             .once()
-            .returning(move |_| Box::pin(async { Ok((None, Some("fake_isbn_13".to_string()))) }));
+            .returning(move |_| {
+                Box::pin(async {
+                    Ok(BookIdentification {
+                        isbn10: None,
+                        isbn13: Some("fake_isbn_13".to_string()),
+                        title: None,
+                        author: None,
+                    })
+                })
+            });
 
         let mut metadata_store_mock = MockMetadataStore::new();
         metadata_store_mock
             .expect_get_metadata()
-            .with(eq("fake_isbn_13"))
+            .with(eq(BookIdentification {
+                isbn10: None,
+                isbn13: Some("fake_isbn_13".to_string()),
+                title: None,
+                author: None,
+            }))
             .once()
             .returning(move |_| Box::pin(async { Ok(vec![]) }));
 
@@ -218,17 +261,31 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_download_links_found_some_links() {
-        let mut isbn_getter_mock = MockIsbnGetter::new();
+        let mut isbn_getter_mock = MockBookIdentificationGetter::new();
         isbn_getter_mock
-            .expect_get_isbn()
+            .expect_get_identification()
             .with(eq("http://hello.world"))
             .once()
-            .returning(move |_| Box::pin(async { Ok((Some("fake_isbn_10".to_string()), None)) }));
+            .returning(move |_| {
+                Box::pin(async {
+                    Ok(BookIdentification {
+                        isbn10: Some("fake_isbn_10".to_string()),
+                        isbn13: None,
+                        title: None,
+                        author: None,
+                    })
+                })
+            });
 
         let mut metadata_store_mock = MockMetadataStore::new();
         metadata_store_mock
             .expect_get_metadata()
-            .with(eq("fake_isbn_10"))
+            .with(eq(BookIdentification {
+                isbn10: Some("fake_isbn_10".to_string()),
+                isbn13: None,
+                title: None,
+                author: None,
+            }))
             .once()
             .returning(move |_| {
                 Box::pin(async {

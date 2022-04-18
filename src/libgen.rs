@@ -8,6 +8,7 @@
 //! Example response:
 //! [{"title":"Pride and Prejudice","author":"Jane Austen","year":"2000","extension":"pdf","md5":"ab13556b96d473c8dfad7165c4704526"}]
 
+use crate::goodreads::BookIdentification;
 use async_trait::async_trait;
 use serde::{de, Deserialize, Deserializer};
 use serde_json::Value;
@@ -17,7 +18,10 @@ const BASE_URL: &str = "http://libgen.rs/json.php";
 #[async_trait]
 #[cfg_attr(test, mockall::automock)]
 pub trait MetadataStore {
-    async fn get_metadata(&self, isbn: &str) -> Result<Vec<LibgenMetadata>, reqwest::Error>;
+    async fn get_metadata(
+        &self,
+        book_identification: &BookIdentification,
+    ) -> Result<Vec<LibgenMetadata>, Error>;
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq)]
@@ -86,22 +90,50 @@ pub struct Libgen {}
 
 #[async_trait]
 impl MetadataStore for Libgen {
-    async fn get_metadata(&self, isbn: &str) -> Result<Vec<LibgenMetadata>, reqwest::Error> {
+    async fn get_metadata(
+        &self,
+        book_identification: &BookIdentification,
+    ) -> Result<Vec<LibgenMetadata>, Error> {
+        let query = if let Some(isbn10) = &book_identification.isbn10 {
+            format!("isbn={isbn}", isbn = &isbn10)
+        } else if let Some(isbn13) = &book_identification.isbn13 {
+            format!("isbn={isbn}", isbn = &isbn13)
+        } else if let (Some(title), Some(author)) =
+            (&book_identification.title, &book_identification.author)
+        {
+            return Err(Error::NoIsbn {
+                title: title.to_owned(),
+                author: author.to_owned(),
+            });
+        } else {
+            return Err(Error::MissingIndentificationInfo);
+        };
+
         let url = format!(
-            "{base_url}?isbn={isbn}&fields=Title,Author,Year,Extension,MD5",
+            "{base_url}?{query}&fields=Title,Author,Year,Extension,MD5",
             base_url = BASE_URL,
-            isbn = isbn,
+            query = query,
         );
 
-        reqwest::get(url).await?.json().await
+        println!("url: {}", url);
+
+        let resp = reqwest::get(url).await?.json().await?;
+        Ok(resp)
     }
 }
 
 #[tokio::test]
 #[ignore = "This test calls the LibGen API, don't run it with every file change"]
 async fn third_party_test_get_metadata_from_libgen_api() {
+    let book_identification = BookIdentification {
+        isbn10: None,
+        isbn13: Some("9788853001351".to_string()),
+        title: None,
+        author: None,
+    };
+
     let got = Libgen::default()
-        .get_metadata("9788853001351")
+        .get_metadata(&book_identification)
         .await
         .expect("The call to LibGen should succeed");
     assert_eq!(1, got.len());
@@ -257,4 +289,17 @@ fn test_sort_extensions() {
         ],
         extensions
     );
+}
+
+#[derive(Debug)]
+pub enum Error {
+    MissingIndentificationInfo,
+    NoIsbn { title: String, author: String },
+    HttpError(String),
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Self {
+        Self::HttpError(err.to_string())
+    }
 }
