@@ -247,20 +247,48 @@ impl<'de> Deserialize<'de> for Extension {
         D: Deserializer<'de>,
     {
         let v = Value::deserialize(deserializer)?;
-        Ok(
-            match Option::deserialize(&v["extension"]).map_err(de::Error::custom)? {
-                Some(ext) => match ext {
-                    "mobi" => Self::Mobi,
-                    "epub" => Self::Epub,
-                    "azw3" => Self::Azw3,
-                    "djvu" => Self::Djvu,
-                    "pdf" => Self::Pdf,
-                    "doc" => Self::Doc,
-                    ext => Self::Other(ext.to_string()),
-                },
-                None => Self::Other(String::new()),
+        let ext: Option<&str> = Option::deserialize(&v["extension"]).map_err(de::Error::custom)?;
+        Ok(match ext {
+            Some(ext) => match ext.to_lowercase().as_str() {
+                "mobi" => Self::Mobi,
+                "epub" => Self::Epub,
+                "azw3" => Self::Azw3,
+                "djvu" => Self::Djvu,
+                "pdf" => Self::Pdf,
+                "doc" => Self::Doc,
+                ext => Self::Other(ext.to_string()),
             },
-        )
+            None => Self::Other(String::new()),
+        })
+    }
+}
+
+#[test]
+fn test_deserialise_extension() {
+    for (data, want) in vec![
+        ("pdf", Extension::Pdf),
+        ("PDF", Extension::Pdf),
+        ("Pdf", Extension::Pdf),
+        ("pdF", Extension::Pdf),
+        ("PdF", Extension::Pdf),
+        ("mobi", Extension::Mobi),
+        ("epub", Extension::Epub),
+        ("djvu", Extension::Djvu),
+        ("azw3", Extension::Azw3),
+        (
+            "randomextension",
+            Extension::Other("randomextension".to_string()),
+        ),
+        (
+            "RANDOMEXTENSION",
+            Extension::Other("randomextension".to_string()),
+        ),
+        ("", Extension::Other(String::new())),
+    ] {
+        let got: Extension =
+            serde_json::from_str(format!(r#"{{ "extension": "{data}" }}"#, data = data).as_str())
+                .expect("Should deserialise valid data");
+        assert_eq!(want, got);
     }
 }
 
