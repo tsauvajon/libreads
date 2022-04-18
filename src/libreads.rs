@@ -356,4 +356,63 @@ mod tests {
             got
         );
     }
+
+    #[tokio::test]
+    async fn test_get_download_links_failed_to_get_library_dot_lol_links() {
+        let mut isbn_getter_mock = MockBookIdentificationGetter::new();
+        isbn_getter_mock
+            .expect_get_identification()
+            .with(eq("http://hello.world"))
+            .once()
+            .returning(move |_| {
+                Box::pin(async {
+                    Ok(BookIdentification {
+                        isbn10: Some("fake_isbn_10".to_string()),
+                        isbn13: None,
+                        title: None,
+                        author: None,
+                    })
+                })
+            });
+
+        let mut metadata_store_mock = MockMetadataStore::new();
+        metadata_store_mock
+            .expect_get_metadata()
+            .with(eq(BookIdentification {
+                isbn10: Some("fake_isbn_10".to_string()),
+                isbn13: None,
+                title: None,
+                author: None,
+            }))
+            .once()
+            .returning(move |_| {
+                Box::pin(async {
+                    Ok(vec![LibgenMetadata {
+                        title: "hello".to_string(),
+                        author: "hello".to_string(),
+                        year: "hello".to_string(),
+                        extension: Extension::Mobi,
+                        md5: "MYBOOKMD5".to_string(),
+                    }])
+                })
+            });
+
+        let libreads = LibReads {
+            isbn_getter: Box::new(isbn_getter_mock),
+            metadata_store: Box::new(metadata_store_mock),
+            download_links_store: Box::new(LibraryDotLol {
+                base_url: "bad url".to_string(),
+            }),
+        };
+        let got = libreads
+            .get_book_info_from_goodreads_url("http://hello.world")
+            .await;
+
+        assert_eq!(
+            Err(Error::HttpError(
+                "builder error: relative URL without a base".to_string()
+            )),
+            got
+        )
+    }
 }

@@ -24,7 +24,7 @@ pub trait DownloadLinksStore {
 }
 
 pub struct LibraryDotLol {
-    base_url: String,
+    pub base_url: String,
 }
 
 #[async_trait]
