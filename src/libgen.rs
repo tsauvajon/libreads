@@ -85,8 +85,9 @@ fn test_display_extension() {
     }
 }
 
-#[derive(Default)]
-pub struct Libgen {}
+pub struct Libgen {
+    base_url: String,
+}
 
 #[async_trait]
 impl MetadataStore for Libgen {
@@ -111,11 +112,9 @@ impl MetadataStore for Libgen {
 
         let url = format!(
             "{base_url}?{query}&fields=Title,Author,Year,Extension,MD5",
-            base_url = BASE_URL,
+            base_url = self.base_url,
             query = query,
         );
-
-        println!("url: {}", url);
 
         let resp = reqwest::get(url).await?.json().await?;
         Ok(resp)
@@ -161,6 +160,27 @@ async fn test_get_metadata_no_isbn() {
             title: "Hello".to_string(),
             author: "World".to_string()
         }),
+        got
+    );
+}
+
+#[tokio::test]
+async fn test_get_metadata_http_error() {
+    let book_identification = BookIdentification {
+        isbn10: None,
+        isbn13: Some("123".to_string()),
+        title: None,
+        author: None,
+    };
+    let libgen = Libgen {
+        base_url: "bad url".to_string(),
+    };
+    let got = libgen.get_metadata(&book_identification).await;
+
+    assert_eq!(
+        Err(Error::HttpError(
+            "builder error: relative URL without a base".to_string()
+        )),
         got
     );
 }
@@ -308,6 +328,14 @@ fn test_sort_extensions() {
         ],
         extensions
     );
+}
+
+impl Default for Libgen {
+    fn default() -> Self {
+        Self {
+            base_url: BASE_URL.to_string(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
