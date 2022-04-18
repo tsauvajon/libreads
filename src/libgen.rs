@@ -146,6 +146,25 @@ async fn third_party_test_get_metadata_from_libgen_api() {
     println!("{:?}", got);
 }
 
+#[tokio::test]
+async fn test_get_metadata_no_isbn() {
+    let book_identification = BookIdentification {
+        isbn10: None,
+        isbn13: None,
+        title: Some("Hello".to_string()),
+        author: Some("World".to_string()),
+    };
+    let got = Libgen::default().get_metadata(&book_identification).await;
+
+    assert_eq!(
+        Err(Error::NoIsbn {
+            title: "Hello".to_string(),
+            author: "World".to_string()
+        }),
+        got
+    );
+}
+
 pub fn find_most_relevant(books_metadata: &[LibgenMetadata]) -> Option<LibgenMetadata> {
     if books_metadata.is_empty() {
         return None;
@@ -291,7 +310,7 @@ fn test_sort_extensions() {
     );
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     MissingIndentificationInfo,
     NoIsbn { title: String, author: String },

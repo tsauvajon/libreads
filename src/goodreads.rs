@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use regex::Regex;
 use scraper::{Html, Selector};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub struct BookIdentification {
     pub isbn10: Option<String>,
     pub isbn13: Option<String>,
@@ -104,7 +104,7 @@ mod test_find_isbn_10 {
         assert_eq!(
             Some("0521405998".to_string()),
             Goodreads::default().find_isbn_10(&fragment)
-        );
+        )
     }
 
     #[test]
@@ -119,7 +119,7 @@ mod test_find_isbn_10 {
         </div>"#;
         let fragment = Html::parse_fragment(&fragment);
 
-        assert_eq!(None, Goodreads::default().find_isbn_10(&fragment));
+        assert_eq!(None, Goodreads::default().find_isbn_10(&fragment))
     }
 }
 
@@ -142,7 +142,7 @@ mod test_find_isbn_13 {
         assert_eq!(
             Some("9780521405997".to_string()),
             Goodreads::default().find_isbn_13(&fragment)
-        );
+        )
     }
 
     #[test]
@@ -157,7 +157,7 @@ mod test_find_isbn_13 {
         </div>"#;
         let fragment = Html::parse_fragment(&fragment);
 
-        assert_eq!(None, Goodreads::default().find_isbn_13(&fragment));
+        assert_eq!(None, Goodreads::default().find_isbn_13(&fragment))
     }
 }
 
@@ -174,7 +174,7 @@ mod test_find_title {
         assert_eq!(
             Some("1984".to_string()),
             Goodreads::default().find_title(&fragment)
-        );
+        )
     }
 
     #[test]
@@ -186,7 +186,7 @@ mod test_find_title {
         assert_eq!(
             Some("The Origin of Species".to_string()),
             Goodreads::default().find_title(&fragment)
-        );
+        )
     }
 
     #[test]
@@ -200,7 +200,7 @@ mod test_find_title {
         </div>"#;
         let fragment = Html::parse_fragment(&fragment);
 
-        assert_eq!(None, Goodreads::default().find_title(&fragment));
+        assert_eq!(None, Goodreads::default().find_title(&fragment))
     }
 }
 
@@ -217,7 +217,7 @@ mod test_find_author {
         assert_eq!(
             Some("George Orwell".to_string()),
             Goodreads::default().find_author(&fragment)
-        );
+        )
     }
 
     #[test]
@@ -229,7 +229,7 @@ mod test_find_author {
         assert_eq!(
             Some("Charles Darwin".to_string()),
             Goodreads::default().find_author(&fragment)
-        );
+        )
     }
 
     #[test]
@@ -246,6 +246,6 @@ mod test_find_author {
     </div>"#;
         let fragment = Html::parse_fragment(&fragment);
 
-        assert_eq!(None, Goodreads::default().find_author(&fragment));
+        assert_eq!(None, Goodreads::default().find_author(&fragment))
     }
 }

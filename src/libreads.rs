@@ -100,6 +100,31 @@ impl From<libgen::Error> for Error {
     }
 }
 
+#[test]
+fn test_libgen_error_to_error() {
+    for (err, want) in vec![
+        (
+            libgen::Error::MissingIndentificationInfo,
+            Error::ApplicationError(
+                "Not enough info about the book found in this page".to_string(),
+            ),
+        ),
+        (
+            libgen::Error::NoIsbn {
+                title: "1984".to_string(),
+                author: "George Orwell".to_string(),
+            },
+            Error::ApplicationError(r#"No ISBN found for "1984" by George Orwell"#.to_string()),
+        ),
+        (
+            libgen::Error::HttpError("Oh no!!".to_string()),
+            Error::HttpError("Oh no!!".to_string()),
+        ),
+    ] {
+        assert_eq!(want, Error::from(err));
+    }
+}
+
 impl From<&str> for Error {
     fn from(err: &str) -> Self {
         Error::ApplicationError(err.to_string())
@@ -145,16 +170,7 @@ mod tests {
             .expect_get_identification()
             .with(eq("http://hello.world"))
             .once()
-            .returning(move |_| {
-                Box::pin(async {
-                    Ok(BookIdentification {
-                        isbn10: None,
-                        isbn13: None,
-                        title: None,
-                        author: None,
-                    })
-                })
-            });
+            .returning(move |_| Box::pin(async { Ok(BookIdentification::default()) }));
 
         let libreads = LibReads {
             isbn_getter: Box::new(isbn_getter_mock),
