@@ -202,12 +202,7 @@ mod tests {
             .returning(move |_| {
                 Box::pin(async {
                     reqwest::get("bad_url").await?; // This is the only way I found of returning a reqwest::Error. TODO: change the implementation of `get_isbn` to wrap the error in a custom type instead.
-                    Ok(BookIdentification {
-                        isbn10: None,
-                        isbn13: None,
-                        title: None,
-                        author: None,
-                    })
+                    Ok(BookIdentification::default())
                 })
             });
 
