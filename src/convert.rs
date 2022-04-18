@@ -1,6 +1,5 @@
-use std::{fs::File, io, process::Command};
-
 use crate::{libgen::Extension, libreads::BookInfo};
+use std::{fs::File, io, process::Command};
 
 const EBOOK_CONVERT_EXECUTABLE: &str = "ebook-convert";
 
@@ -88,44 +87,74 @@ pub async fn download_as(
 }
 
 #[tokio::test]
-#[ignore = "This does a real HTTP call to a 3rd party server. TODO: mock that server."]
 async fn convert() {
+    use httpmock::{Method::GET, MockServer};
+
+    let mock_server = MockServer::start();
+    let endpoint_mock = mock_server.mock(|when, then| {
+        when.method(GET).path("/book.epub");
+        then.status(200)
+            .body(include_bytes!("../tests/testdata/dummy_ebook.epub"));
+    });
+
     let book = InputBookInfo {
         title: "Governing the Commons".to_string(),
-        extension: Extension::Djvu,
-        download_link: "https://cloudflare-ipfs.com/ipfs/bafykbzacedqn6erurfdw45jy4xbwldyh3ihqykr2kp3sx7knm6lslzcj66m76?filename=%28Political%20Economy%20of%20Institutions%20and%20Decisions%29%20Elinor%20Ostrom%20-%20Governing%20the%20Commons_%20The%20Evolution%20of%20Institutions%20for%20Collective%20Action%20%28Political%20Economy%20of%20Institutions%20and%20Decisions%29-Cambridge.djvu".to_string(),
+        extension: Extension::Epub,
+        download_link: mock_server.url("/book.epub"),
     };
 
     let output_filename = download_as(book, Extension::Mobi).await.unwrap();
     std::fs::remove_file(output_filename).expect("Delete output file");
+    endpoint_mock.assert();
 }
 
 #[tokio::test]
-#[ignore = "This does a real HTTP call to a 3rd party server. TODO: mock that server."]
 async fn conversion_fails() {
+    use httpmock::{Method::GET, MockServer};
+
+    let mock_server = MockServer::start();
+    let endpoint_mock = mock_server.mock(|when, then| {
+        when.method(GET).path("/book.pdf");
+        then.status(200)
+            .body(include_bytes!("../tests/testdata/dummy_invalid_ebook.pdf"));
+    });
+
     let book = InputBookInfo {
-        title: "Dummy invalid ebook".to_string(),
-        extension: Extension::Djvu,
-        download_link: "https://google.com".to_string(), // This will return something that is definitely not a valid Djvu file
+        title: "Dummy invalid ebook 1".to_string(),
+        extension: Extension::Pdf,
+        download_link: mock_server.url("/book.pdf"),
     };
 
     let got = download_as(book, Extension::Mobi).await;
     assert!(got.is_err());
+    endpoint_mock.assert();
 }
 
 #[tokio::test]
-#[ignore = "This does a real HTTP call to a 3rd party server. TODO: mock that server."]
 async fn returns_early_if_no_conversion_is_needed() {
+    use httpmock::{Method::GET, MockServer};
+
+    let mock_server = MockServer::start();
+    let endpoint_mock = mock_server.mock(|when, then| {
+        when.method(GET).path("/book.pdf");
+        then.status(200)
+            .body(include_bytes!("../tests/testdata/dummy_invalid_ebook.pdf"));
+    });
+
     let book = InputBookInfo {
-        title: "Dummy invalid ebook".to_string(),
-        extension: Extension::Djvu,
-        download_link: "https://google.com".to_string(), // This just needs to be an available endpoint, content doesn't matter.
+        title: "Dummy invalid ebook 2".to_string(),
+        extension: Extension::Pdf,
+        download_link: mock_server.url("/book.pdf"),
     };
 
-    let output_filename = download_as(book, Extension::Djvu)
+    // Note: when the input format and output format are the same (here PDF),
+    // if should not try to perform any conversion.
+    // Therefore, it should not matter whether the ebook is valid or invalid.
+    let output_filename = download_as(book, Extension::Pdf)
         .await
         .expect("Should exit early and not perform validations");
     std::fs::remove_file(output_filename).expect("Delete output file");
+    endpoint_mock.assert();
 }
 
 #[tokio::test]
@@ -156,10 +185,24 @@ async fn download(url: &str, filename: &str) -> Result<(), Error> {
 }
 
 #[tokio::test]
-#[ignore = "This makes an HTTP request to a 3rd party, TODO = use a mock server instead"]
 async fn test_download_incorrect_filename() {
-    let got = download("https://google.com", "   /\\ Invalid file name").await;
-    assert_eq!(Err(Error::IoError("No such file or directory (os error 2)".to_string())), got,);
+    use httpmock::{Method::GET, MockServer};
+
+    let mock_server = MockServer::start();
+    let endpoint_mock = mock_server.mock(|when, then| {
+        when.method(GET).path("/");
+        then.status(200);
+    });
+
+    let got = download(mock_server.url("/").as_str(), "   /\\ Invalid file name").await;
+    assert_eq!(
+        Err(Error::IoError(
+            "No such file or directory (os error 2)".to_string()
+        )),
+        got,
+    );
+
+    endpoint_mock.assert();
 }
 
 fn sanitise_title(title: &str) -> String {

@@ -23,38 +23,19 @@ pub trait DownloadLinksStore {
     async fn get_download_links(&self, id: &str) -> Result<DownloadLinks, reqwest::Error>;
 }
 
-#[derive(Default)]
-pub struct LibraryDotLol {}
+pub struct LibraryDotLol {
+    base_url: String,
+}
 
 #[async_trait]
 impl DownloadLinksStore for LibraryDotLol {
     async fn get_download_links(&self, id: &str) -> Result<DownloadLinks, reqwest::Error> {
-        let page_url = format!("{base_url}/{id}", base_url = BASE_URL, id = id);
+        let page_url = format!("{base_url}/{id}", base_url = self.base_url, id = id);
         let body = reqwest::get(page_url).await?.text().await?;
         let document = Html::parse_document(&body);
 
         Ok(extract_links(&document))
     }
-}
-
-#[tokio::test]
-#[ignore = "It calls the webpage, don't run it by default"]
-async fn integration_test_get_download_links() {
-    let got = LibraryDotLol::default()
-        .get_download_links("AB13556B96D473C8DFAD7165C4704526")
-        .await;
-
-    assert!(got.is_ok());
-    assert_eq!(
-        DownloadLinks {
-            cloudflare: "https://cloudflare-ipfs.com/ipfs/bafykbzacedotjioda7arles2s7gyc74hppa3owagm4hmohz4ye574omtalsoc?filename=Jane%20Austen%20-%20Pride%20and%20Prejudice-CIDEB%20%282000%29.pdf".to_string(),
-            ipfs_dot_io: "https://ipfs.io/ipfs/bafykbzacedotjioda7arles2s7gyc74hppa3owagm4hmohz4ye574omtalsoc?filename=Jane%20Austen%20-%20Pride%20and%20Prejudice-CIDEB%20%282000%29.pdf".to_string(),
-            infura: "https://ipfs.infura.io/ipfs/bafykbzacedotjioda7arles2s7gyc74hppa3owagm4hmohz4ye574omtalsoc?filename=Jane%20Austen%20-%20Pride%20and%20Prejudice-CIDEB%20%282000%29.pdf".to_string(),
-            pinata: "https://gateway.pinata.cloud/ipfs/bafykbzacedotjioda7arles2s7gyc74hppa3owagm4hmohz4ye574omtalsoc?filename=Jane%20Austen%20-%20Pride%20and%20Prejudice-CIDEB%20%282000%29.pdf".to_string(),
-            http: "http://31.42.184.140/main/316000/ab13556b96d473c8dfad7165c4704526/Jane%20Austen%20-%20Pride%20and%20Prejudice-CIDEB%20%282000%29.pdf".to_string(),
-        },
-        got.unwrap(),
-    )
 }
 
 fn extract_links(fragment: &Html) -> DownloadLinks {
@@ -111,4 +92,50 @@ fn test_extract_links() {
         "http://some_ip_address/main/316000/some_path/example_filename.pdf",
         got.http
     );
+}
+
+impl Default for LibraryDotLol {
+    fn default() -> Self {
+        Self {
+            base_url: BASE_URL.to_string(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_get_download_links() {
+        use httpmock::{Method::GET, MockServer};
+
+        let mock_server = MockServer::start();
+        let lib_dot_lol = LibraryDotLol {
+            base_url: mock_server.base_url(),
+        };
+
+        let endpoint_mock = mock_server.mock(|when, then| {
+            when.method(GET).path("/AB13556B96D473C8DFAD7165C4704526");
+            then.status(200)
+                .header("content-type", "text/html")
+                .body(include_str!("../tests/testdata/library.lol_book_page.html"));
+        });
+        let got = lib_dot_lol
+            .get_download_links("AB13556B96D473C8DFAD7165C4704526")
+            .await;
+
+        endpoint_mock.assert();
+        assert!(got.is_ok());
+        assert_eq!(
+            DownloadLinks {
+                cloudflare: "https://cloudflare-ipfs.com/ipfs/example.pdf".to_string(),
+                ipfs_dot_io: "https://ipfs.io/ipfs/example.pdf".to_string(),
+                infura: "https://ipfs.infura.io/ipfs/example.pdf".to_string(),
+                pinata: "https://gateway.pinata.cloud/ipfs/example.pdf".to_string(),
+                http: "http://12.34.45.67/main/316000/example.pdf".to_string(),
+            },
+            got.unwrap(),
+        );
+    }
 }

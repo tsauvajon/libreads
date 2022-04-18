@@ -12,7 +12,7 @@ use libreads::{Error, LibReads};
 async fn main() -> Result<(), Error> {
     let book_info = LibReads::default()
         .get_book_info_from_goodreads_url(
-            "https://www.goodreads.com/book/show/1048424.Governing_the_Commons",
+            "https://www.goodreads.com/book/show/22463.The_Origin_of_Species",
         )
         .await?;
     println!(

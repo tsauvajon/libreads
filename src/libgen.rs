@@ -99,7 +99,7 @@ impl MetadataStore for Libgen {
 
 #[tokio::test]
 #[ignore = "This test calls the LibGen API, don't run it with every file change"]
-async fn integration_test_get_metadata_from_libgen_api() {
+async fn third_party_test_get_metadata_from_libgen_api() {
     let got = Libgen::default()
         .get_metadata("9788853001351")
         .await

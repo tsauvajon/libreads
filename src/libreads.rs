@@ -108,7 +108,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "This test calls live web pages and APIs, no need to run it with every file save."]
-    async fn integration_test_get_download_links_from_goodreads_url() {
+    async fn third_party_test_get_download_links_from_goodreads_url() {
         let test_url = "https://www.goodreads.com/book/show/1048424.Governing_the_Commons";
         let libreads = LibReads::default();
         let got = libreads
