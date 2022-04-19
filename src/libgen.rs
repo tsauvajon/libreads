@@ -292,6 +292,14 @@ fn test_deserialise_extension() {
     }
 }
 
+#[test]
+fn test_deserialise_missing_extension() {
+    let got: Extension =
+        serde_json::from_str("{}")
+            .expect("Should deserialise valid data");
+    assert_eq!(Extension::Other(String::new()), got)
+}
+
 impl Ord for Extension {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         fn val(ext: &Extension) -> u8 {

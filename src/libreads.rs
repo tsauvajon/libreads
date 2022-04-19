@@ -200,10 +200,9 @@ mod tests {
             .with(eq("http://hello.world"))
             .once()
             .returning(move |_| {
-                Box::pin(async {
-                    reqwest::get("bad_url").await?; // This is the only way I found of returning a reqwest::Error. TODO: change the implementation of `get_isbn` to wrap the error in a custom type instead.
-                    Ok(BookIdentification::default())
-                })
+                // Using a badly formatted URL is the best way I found of returning a reqwest::Error.
+                // TODO: change `get_isbn` to wrap the error in a custom type instead.
+                Box::pin(async { Err(reqwest::get("Bad_Url").await.unwrap_err()) })
             });
 
         let libreads = LibReads {
