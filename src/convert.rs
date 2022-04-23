@@ -79,7 +79,7 @@ pub async fn download_as(
     if !output.contains("Output saved to") {
         // Something probably went wrong.
         // We return the full command output as an error.
-        return Err(Error::ConversionError(
+        return Err(Error::Conversion(
             String::from_utf8_lossy(output.as_bytes()).to_string(),
         ));
     }
@@ -168,7 +168,7 @@ async fn propagates_reqwest_errors() {
 
     let got = download_as(book, Extension::Djvu).await;
     assert_eq!(
-        Err(Error::HttpError(
+        Err(Error::Http(
             "builder error: relative URL without a base".to_string(),
         )),
         got
@@ -197,7 +197,7 @@ async fn test_download_incorrect_filename() {
 
     let got = download(mock_server.url("/").as_str(), "   /\\ Invalid file name").await;
     assert_eq!(
-        Err(Error::IoError(
+        Err(Error::Io(
             "No such file or directory (os error 2)".to_string()
         )),
         got,
@@ -234,19 +234,19 @@ fn test_sanitise_title() {
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
-    IoError(String),
-    HttpError(String),
-    ConversionError(String),
+    Io(String),
+    Http(String),
+    Conversion(String),
 }
 
 impl From<reqwest::Error> for Error {
     fn from(err: reqwest::Error) -> Self {
-        Error::HttpError(err.to_string())
+        Error::Http(err.to_string())
     }
 }
 
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
-        Error::IoError(err.to_string())
+        Error::Io(err.to_string())
     }
 }

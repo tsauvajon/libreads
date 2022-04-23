@@ -4,27 +4,16 @@
 //!
 //! In other words, it acts as glue between the other modules in this repo.
 
-use async_trait::async_trait;
-
 use crate::{
     goodreads::{BookIdentificationGetter, Goodreads},
     libgen::{self, Libgen, LibgenMetadata, MetadataStore},
     library_dot_lol::{DownloadLinks, DownloadLinksStore, LibraryDotLol},
 };
 
-#[async_trait]
-#[cfg_attr(test, mockall::automock)]
-pub trait BookDownloader {
-    async fn get_book_info_from_goodreads_url(
-        &self,
-        goodreads_book_url: &str,
-    ) -> Result<BookInfo, Error>;
-}
-
 pub struct LibReads {
-    isbn_getter: Box<dyn BookIdentificationGetter>,
-    metadata_store: Box<dyn MetadataStore>,
-    download_links_store: Box<dyn DownloadLinksStore>,
+    pub(crate) isbn_getter: Box<dyn BookIdentificationGetter>,
+    pub(crate) metadata_store: Box<dyn MetadataStore>,
+    pub(crate) download_links_store: Box<dyn DownloadLinksStore>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -33,9 +22,8 @@ pub struct BookInfo {
     pub download_links: DownloadLinks,
 }
 
-#[async_trait]
-impl BookDownloader for LibReads {
-    async fn get_book_info_from_goodreads_url(
+impl LibReads {
+    pub async fn get_book_info_from_goodreads_url(
         &self,
         goodreads_book_url: &str,
     ) -> Result<BookInfo, Error> {
