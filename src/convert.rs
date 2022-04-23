@@ -1,5 +1,6 @@
+use tokio::{fs::File, io, process::Command};
+
 use crate::{extension::Extension, libreads::BookInfo};
-use std::{fs::File, io, process::Command};
 
 const EBOOK_CONVERT_EXECUTABLE: &str = "ebook-convert";
 
@@ -70,7 +71,7 @@ pub async fn download_as(
         .arg(&in_filename)
         .arg(&out_filename)
         .output()
-        .unwrap();
+        .await?;
 
     std::fs::remove_file(&in_filename).expect("Delete input file");
 
@@ -92,7 +93,6 @@ mod conversion_tests {
     use httpmock::{Method::GET, MockServer};
 
     #[tokio::test]
-    #[ignore = "This test has to create and delete files, which chain-trigger cargo watch"]
     async fn convert() {
         let mock_server = MockServer::start();
         let endpoint_mock = mock_server.mock(|when, then| {
@@ -113,7 +113,6 @@ mod conversion_tests {
     }
 
     #[tokio::test]
-    #[ignore = "This test has to create and delete files, which chain-trigger cargo watch"]
     async fn conversion_fails() {
         let mock_server = MockServer::start();
         let endpoint_mock = mock_server.mock(|when, then| {
@@ -134,7 +133,6 @@ mod conversion_tests {
     }
 
     #[tokio::test]
-    #[ignore = "This test has to create and delete files, which chain-trigger cargo watch"]
     async fn returns_early_if_no_conversion_is_needed() {
         let mock_server = MockServer::start();
         let endpoint_mock = mock_server.mock(|when, then| {
@@ -181,8 +179,8 @@ async fn download(url: &str, filename: &str) -> Result<(), Error> {
     println!("Downloading {}...", &filename);
 
     let resp = reqwest::get(url).await?;
-    let mut out = File::create(filename)?;
-    io::copy(&mut resp.bytes().await?.as_ref(), &mut out)?;
+    let mut out = File::create(filename).await?;
+    io::copy(&mut resp.bytes().await?.as_ref(), &mut out).await?;
 
     Ok(())
 }

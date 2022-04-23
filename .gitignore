@@ -1,3 +1,8 @@
-/target
+/target/
 
 .DS_Store
+/*.mobi
+/*.epub
+/*.azw3
+/*.djvu
+/*.pdf
