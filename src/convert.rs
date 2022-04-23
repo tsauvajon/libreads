@@ -73,7 +73,9 @@ pub async fn download_as(
         .output()
         .await?;
 
-    std::fs::remove_file(&in_filename).expect("Delete input file");
+    tokio::fs::remove_file(&in_filename)
+        .await
+        .expect("Delete input file");
 
     let output = String::from_utf8_lossy(&output.stdout);
     if !output.contains("Output saved to") {
@@ -108,7 +110,9 @@ mod conversion_tests {
         };
 
         let output_filename = download_as(book, Extension::Mobi).await.unwrap();
-        std::fs::remove_file(output_filename).expect("Delete output file");
+        tokio::fs::remove_file(output_filename)
+            .await
+            .expect("Delete output file");
         endpoint_mock.assert();
     }
 

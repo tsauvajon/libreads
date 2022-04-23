@@ -18,6 +18,9 @@ pub async fn download(
 
     let filename = download_as(book_info.into(), Extension::Mobi).await?;
 
+    // TODO: find a good way to clean up the file after it has been served.
+    // I'm thinking of 1/ opening the file in memory, 2/ deleting the file, 3/ serving the file from memory.
+
     Ok(NamedFile::open(filename)?)
 }
 
@@ -155,7 +158,9 @@ mod tests {
             .await
             .expect("the call should succeed");
 
-        std::fs::remove_file("hello.mobi").expect("Delete output file");
+        tokio::fs::remove_file("hello.mobi")
+            .await
+            .expect("Delete output file");
         endpoint_mock.assert();
 
         println!("{:?}", resp.path())
