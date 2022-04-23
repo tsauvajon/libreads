@@ -1,12 +1,8 @@
-mod convert;
-mod goodreads;
-mod libgen;
-mod library_dot_lol;
-mod libreads;
-
-use convert::download_as;
-use libgen::Extension;
-use libreads::{Error, LibReads};
+use libreads::{
+    convert::download_as,
+    libgen::Extension,
+    libreads::{Error, LibReads},
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {

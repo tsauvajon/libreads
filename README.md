@@ -20,6 +20,24 @@ with `brew install --cask calibre`.
 
 On Linux, you can install it with `sudo -v && wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin`. Since this runs an arbitrary `sh` file using `sudo`, you should definitely understand what you're doing before pasting that in a terminal. In doubt, check the [official guide](https://calibre-ebook.com/download_linux).
 
+## Usage
+
+### Using the library directly
+
+I have created two examples that use the Rust library directly.
+
+```sh
+$ cargo run --example the_origin_of_species
+Error: ApplicationError("No ISBN found for \"The Origin of Species\" by Charles Darwin")
+
+$ cargo run --example governing_the_commons
+Formats found: [Pdf, Djvu, Pdf, Doc] -> Djvu selected
+IPFS.io download link: https://[...]Governing%20the%20Commons.djvu
+Downloading Governing the Commons.djvu...
+Converting book to Mobi...
+Ebook downloaded as Governing the Commons.mobi
+```
+
 ## What does it do? How does it work?
 
 ### 1: Find the ISBN from Goodreads
