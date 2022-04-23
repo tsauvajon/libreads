@@ -135,8 +135,9 @@ impl From<&str> for Error {
 mod tests {
     use super::*;
     use crate::{
+        extension::Extension,
         goodreads::{BookIdentification, MockBookIdentificationGetter},
-        libgen::{Extension, LibgenMetadata, MockMetadataStore},
+        libgen::{LibgenMetadata, MockMetadataStore},
         library_dot_lol::MockDownloadLinksStore,
     };
     use mockall::predicate::eq;

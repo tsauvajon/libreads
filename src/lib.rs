@@ -1,5 +1,6 @@
 pub mod convert;
+pub mod extension;
 mod goodreads;
-pub mod libgen;
+mod libgen;
 mod library_dot_lol;
 pub mod libreads;

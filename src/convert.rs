@@ -1,4 +1,4 @@
-use crate::{libgen::Extension, libreads::BookInfo};
+use crate::{extension::Extension, libreads::BookInfo};
 use std::{fs::File, io, process::Command};
 
 const EBOOK_CONVERT_EXECUTABLE: &str = "ebook-convert";

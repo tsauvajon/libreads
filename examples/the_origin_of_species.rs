@@ -1,6 +1,6 @@
 use libreads::{
     convert::download_as,
-    libgen::Extension,
+    extension::Extension,
     libreads::{Error, LibReads},
 };
 
