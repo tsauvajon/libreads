@@ -66,15 +66,12 @@ pub async fn download_as(
     let out_filename = format!("{}.{}", title, wanted_extension);
 
     println!("Converting book to {:?}...", wanted_extension);
-    let output = Command::new(EBOOK_CONVERT_EXECUTABLE)
+    let output = std::process::Command::new(EBOOK_CONVERT_EXECUTABLE)
         .arg(&in_filename)
         .arg(&out_filename)
-        .output()
-        .await?;
+        .output()?;
 
-    tokio::fs::remove_file(&in_filename)
-        .await
-        .expect("Delete input file");
+    std::fs::remove_file(&in_filename).expect("Delete input file");
 
     let output = String::from_utf8_lossy(&output.stdout);
     if !output.contains("Output saved to") {
