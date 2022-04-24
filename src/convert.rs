@@ -109,9 +109,7 @@ mod conversion_tests {
         };
 
         let output_filename = download_as(book, Extension::Mobi).await.unwrap();
-        tokio::fs::remove_file(output_filename)
-            .await
-            .expect("Delete output file");
+        std::fs::remove_file(output_filename).expect("Delete output file");
         endpoint_mock.assert();
     }
 
