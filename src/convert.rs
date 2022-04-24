@@ -66,6 +66,9 @@ pub async fn download_as(
     let out_filename = format!("{}.{}", title, wanted_extension);
 
     println!("Converting book to {:?}...", wanted_extension);
+    // Note: using std::process instead of tokio::process because it hangs
+    // forever on the CI.
+    // TODO: figure out why and fix it.
     let output = std::process::Command::new(EBOOK_CONVERT_EXECUTABLE)
         .arg(&in_filename)
         .arg(&out_filename)

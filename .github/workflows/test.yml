@@ -14,12 +14,16 @@ jobs:
         id: cache-ebook-convert
         uses: actions/cache@v3
         with:
-          path: /usr/bin/ebook-convert
-          key: calibre
+          path: ebook-convert
+          key: ${{ runner.os }}-calibre
 
       - name: Install Ebook-Convert
         if: steps.cache-ebook-convert.outputs.cache-hit != 'true'
-        run: sudo -v && wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
+        run: sudo -v && wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin && cp /usr/bin/ebook-convert .
+
+      - name: Install Ebook-Convert (from cache)
+        if: steps.cache-ebook-convert.outputs.cache-hit == 'true'
+        run: sudo mv ebook-convert /usr/bin/ebook-convert
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
