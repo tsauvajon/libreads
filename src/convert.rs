@@ -1,5 +1,5 @@
 use crate::{extension::Extension, libreads::BookInfo};
-use tokio::{fs::File, io, process::Command};
+use tokio::{fs::File, io};
 
 const EBOOK_CONVERT_EXECUTABLE: &str = "ebook-convert";
 
@@ -66,11 +66,10 @@ pub async fn download_as(
     let out_filename = format!("{}.{}", title, wanted_extension);
 
     println!("Converting book to {:?}...", wanted_extension);
-    let output = Command::new(EBOOK_CONVERT_EXECUTABLE)
+    let output = std::process::Command::new(EBOOK_CONVERT_EXECUTABLE)
         .arg(&in_filename)
         .arg(&out_filename)
-        .output()
-        .await?;
+        .output()?;
 
     tokio::fs::remove_file(&in_filename)
         .await
