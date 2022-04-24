@@ -31,15 +31,7 @@ jobs:
           toolchain: stable
           override: true
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: Swatinem/rust-cache@v1
 
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
