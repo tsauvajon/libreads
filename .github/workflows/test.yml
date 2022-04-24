@@ -23,7 +23,7 @@ jobs:
 
       - name: Install Ebook-Convert (from cache)
         if: steps.cache-ebook-convert.outputs.cache-hit == 'true'
-        run: sudo mv ebook-convert /usr/bin/ebook-convert
+        run: sudo mv ebook-convert /usr/bin/ebook-convert && which ebook-convert
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
