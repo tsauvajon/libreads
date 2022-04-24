@@ -10,9 +10,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Install Calibre
-        run: sudo -v && wget --no-check-certificate -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
-        # TODO: cache me
+      - name: Cache Ebook-Convert
+        id: cache-ebook-convert
+        uses: actions/cache@v3
+        with:
+          path: /usr/bin/ebook-convert
+          key: calibre
+
+      - name: Install Ebook-Convert
+        if: steps.cache-ebook-convert.outputs.cache-hit != 'true'
+        run: sudo -v && wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
