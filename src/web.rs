@@ -39,6 +39,26 @@ impl error::ResponseError for Error {
     }
 }
 
+#[test]
+fn test_error_status_code() {
+    use reqwest::StatusCode;
+
+    for (name, want) in vec![
+        ("upstream", StatusCode::BAD_GATEWAY),
+        ("http", StatusCode::INTERNAL_SERVER_ERROR),
+        ("i/o", StatusCode::INTERNAL_SERVER_ERROR),
+        ("application", StatusCode::INTERNAL_SERVER_ERROR),
+        ("anything at all", StatusCode::INTERNAL_SERVER_ERROR),
+    ] {
+        let error = Error {
+            name: name.to_string(),
+            message: "doesn't matter".to_string(),
+        };
+
+        assert_eq!(want, actix_web::ResponseError::status_code(&error));
+    }
+}
+
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}: {}", self.name, self.message)
@@ -141,7 +161,7 @@ mod tests {
     use mockall::predicate::eq;
 
     #[actix_web::test]
-    async fn test_todo() {
+    async fn test_download() {
         let mock_download_server = MockServer::start();
         let endpoint_mock = mock_download_server.mock(|when, then| {
             when.method(GET).path("/book.mobi");
@@ -163,7 +183,31 @@ mod tests {
             .expect("Delete output file");
         endpoint_mock.assert();
 
-        println!("{:?}", resp.path())
+        assert_eq!(
+            "hello.mobi",
+            resp.path().file_name().expect("Should be a file")
+        )
+    }
+
+    #[actix_web::test]
+    async fn test_download_error() {
+        let mock_goodreads_url = web::Path::from("http://hello.world".to_string());
+
+        let mut isbn_getter_mock = MockBookIdentificationGetter::new();
+        isbn_getter_mock
+            .expect_get_identification()
+            .with(eq("http://hello.world"))
+            .once()
+            .returning(|_| Box::pin(async { Err(reqwest::get("Bad_Url").await.unwrap_err()) }));
+
+        let mock_libreads = LibReads {
+            isbn_getter: Box::new(isbn_getter_mock),
+            metadata_store: Box::new(MockMetadataStore::new()),
+            download_links_store: Box::new(MockDownloadLinksStore::new()),
+        };
+
+        let resp = download(web::Data::new(mock_libreads), mock_goodreads_url).await;
+        assert!(resp.is_err())
     }
 
     // TODO: make the whole flow easier to mock, by wrapping it in a higher level thing.
