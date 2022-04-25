@@ -12,6 +12,8 @@ Of course, you need to only use this for public domain books, not for any copyri
 
 ## Requirements
 
+### Calibre
+
 You'll need [ebook-convert](https://manual.calibre-ebook.com/generated/en/ebook-convert.html) installed
 and available (hint: try `which ebook-convert`).
 
@@ -20,9 +22,28 @@ with `brew install --cask calibre`.
 
 On Linux, you can install it with `sudo -v && wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin`. Since this runs an arbitrary `sh` file using `sudo`, you should definitely understand what you're doing before pasting that in a terminal. In doubt, check the [official guide](https://calibre-ebook.com/download_linux).
 
+### Front-end
+
+You'll need a recent version of Node.js to compile the Svelte application.
+I'm not sure about the exact requirements (and don't care too much); I'm
+on Node.js `v18.0.0`.
+
 ## Usage
 
-### Using the library directly
+### Run the app with hot reload
+
+```sh
+cargo run # backend
+cd frontend && npm run dev # front-end
+```
+
+### Build for release
+
+```sh
+make build
+```
+
+### Use the library directly
 
 I have created two examples that use the Rust library directly.
 

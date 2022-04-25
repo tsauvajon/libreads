@@ -1,4 +1,5 @@
 /target/
+/release/
 
 .DS_Store
 /*.mobi
