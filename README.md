@@ -32,9 +32,19 @@ on Node.js `v18.0.0`.
 
 ### Run the app with hot reload
 
+#### Backend
+
+It runs at http://127.0.0.8001 by default.
 ```sh
-cargo run # backend
-cd frontend && npm run dev # front-end
+make build-frontend # optional: statically serve the front-end at /
+cargo run
+```
+
+#### Front-end
+
+It runs at http://127.0.0.1:3000 by default.
+```
+cd frontend && npm run dev
 ```
 
 ### Build for release

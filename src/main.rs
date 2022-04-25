@@ -1,4 +1,8 @@
-use actix_web::{web::Data, App, HttpServer};
+use actix_files::Files;
+use actix_web::{
+    web::{get, Data},
+    App, HttpServer,
+};
 use libreads::{libreads::LibReads, web::download};
 
 #[actix_web::main]
@@ -7,10 +11,8 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .route(
-                "/download/{goodreads_url}",
-                actix_web::web::get().to(download),
-            )
+            .service(Files::new("/", "./frontend/build").index_file("index.html"))
+            .route("/download/{goodreads_url}", get().to(download))
             .app_data(libreads.clone())
     })
     .bind(("127.0.0.1", 8001))?
