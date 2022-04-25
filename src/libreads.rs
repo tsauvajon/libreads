@@ -11,9 +11,9 @@ use crate::{
 };
 
 pub struct LibReads {
-    pub(crate) isbn_getter: Box<dyn BookIdentificationGetter>,
-    pub(crate) metadata_store: Box<dyn MetadataStore>,
-    pub(crate) download_links_store: Box<dyn DownloadLinksStore>,
+    pub(crate) isbn_getter: Box<dyn BookIdentificationGetter + Send + Sync + 'static>,
+    pub(crate) metadata_store: Box<dyn MetadataStore + Send + Sync + 'static>,
+    pub(crate) download_links_store: Box<dyn DownloadLinksStore + Send + Sync + 'static>,
 }
 
 #[derive(Debug, PartialEq)]
