@@ -177,3 +177,35 @@ fn test_sort_extensions() {
         extensions
     );
 }
+
+impl Extension {
+    pub fn content_type(&self) -> String {
+        match self {
+            Extension::Mobi => "application/x-mobipocket-ebook",
+            Extension::Epub => "application/epub+zip",
+            Extension::Azw3 => "application/vnd.amazon.ebook",
+            Extension::Djvu => "image/vnd",
+            Extension::Pdf => "application/pdf",
+            Extension::Doc => "application/msword",
+            Extension::Other(_) => "plain/text",
+        }
+        .to_string()
+    }
+}
+
+#[test]
+fn test_extension_content_type() {
+    for (ext, want) in vec![
+        (Extension::Mobi, "application/x-mobipocket-ebook"),
+        (Extension::Epub, "application/epub+zip"),
+        (Extension::Azw3, "application/vnd.amazon.ebook"),
+        (Extension::Djvu, "image/vnd"),
+        (Extension::Pdf, "application/pdf"),
+        (Extension::Doc, "application/msword"),
+        (Extension::Other("abc".to_string()), "plain/text"),
+        (Extension::Other("def".to_string()), "plain/text"),
+        (Extension::Other(String::new()), "plain/text"),
+    ] {
+        assert_eq!(want, ext.content_type());
+    }
+}

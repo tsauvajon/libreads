@@ -5,23 +5,60 @@ use crate::{
     extension::Extension,
     libreads::{self, LibReads},
 };
-use actix_files::NamedFile;
-use actix_web::{error, web, Result};
+use actix_web::{
+    error,
+    http::header::{ContentDisposition, DispositionParam, DispositionType},
+    web, HttpResponse, Result,
+};
+use reqwest::header::CONTENT_TYPE;
 
 pub async fn download(
     libreads: web::Data<LibReads>,
     goodreads_url: web::Path<String>,
-) -> Result<NamedFile, Error> {
+) -> Result<HttpResponse, Error> {
     let book_info = libreads
         .get_book_info_from_goodreads_url(&goodreads_url)
         .await?;
 
     let filename = download_as(book_info.into(), Extension::Mobi).await?;
+    let buffer = load_file_to_memory(&filename).await?;
 
-    // TODO: find a good way to clean up the file after it has been served.
-    // I'm thinking of 1/ opening the file in memory, 2/ deleting the file, 3/ serving the file from memory.
+    let content_type = (CONTENT_TYPE, Extension::Mobi.content_type());
+    let content_disposition = ContentDisposition {
+        disposition: DispositionType::Attachment,
+        parameters: vec![DispositionParam::Filename(filename)],
+    };
 
-    Ok(NamedFile::open(filename)?)
+    println!("Serving the converted file from memory!");
+
+    Ok(HttpResponse::Ok()
+        .append_header(content_disposition)
+        .append_header(content_type)
+        .body(buffer))
+}
+
+// Loads a file to memory and then delete it.
+#[cfg_attr(tarpaulin, ignore)] // It would complexify the code too much to be able to test each error path individually
+async fn load_file_to_memory(filename: &str) -> Result<Vec<u8>, std::io::Error> {
+    // (1) Load file to memory
+    let mut file = tokio::fs::File::open(&filename).await?;
+    let metadata = tokio::fs::metadata(&filename).await?; // Untested.
+    let mut buffer = vec![0; metadata.len() as usize];
+    tokio::io::AsyncReadExt::read(&mut file, &mut buffer).await?; // Untested.
+
+    // (2) Remove the file now that we have it in memory
+    tokio::fs::remove_file(&filename).await?; // Untested.
+
+    Ok(buffer)
+}
+
+#[tokio::test]
+async fn test_load_file_to_memory_inexisting_file() {
+    let got = load_file_to_memory("this file doesn't exist").await;
+    assert!(got.is_err());
+    let got = got.unwrap_err();
+
+    assert_eq!(std::io::ErrorKind::NotFound, got.kind())
 }
 
 #[derive(Debug)]
@@ -151,6 +188,8 @@ fn test_error_from_stdio_error() {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
     use crate::{
         goodreads::{BookIdentification, MockBookIdentificationGetter},
@@ -159,6 +198,7 @@ mod tests {
     };
     use httpmock::{Method::GET, MockServer};
     use mockall::predicate::eq;
+    use reqwest::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
 
     #[actix_web::test]
     async fn test_download() {
@@ -178,15 +218,15 @@ mod tests {
             .await
             .expect("the call should succeed");
 
-        tokio::fs::remove_file("hello.mobi")
-            .await
-            .expect("Delete output file");
-        endpoint_mock.assert();
+        let cd = resp.headers().get(CONTENT_DISPOSITION).unwrap();
+        assert_eq!(r#"attachment; filename="hello.mobi""#, cd);
 
-        assert_eq!(
-            "hello.mobi",
-            resp.path().file_name().expect("Should be a file")
-        )
+        let ct = resp.headers().get(CONTENT_TYPE).unwrap();
+        assert_eq!("application/x-mobipocket-ebook", ct);
+
+        // Local file has been deleted
+        assert!(!Path::new("hello.mobi").exists());
+        endpoint_mock.assert();
     }
 
     #[actix_web::test]
