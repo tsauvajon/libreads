@@ -26,7 +26,7 @@ jobs:
         uses: actions-rs/tarpaulin@v0.1
         with:
           version: '0.20.0'
-          args: '--exclude-files src/main.rs -- --show-output --include-ignored' # Run the ignored tests as well
+          args: '--skip-clean --exclude-files src/main.rs -- --show-output --include-ignored' # Run the ignored tests as well
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v1.0.2
