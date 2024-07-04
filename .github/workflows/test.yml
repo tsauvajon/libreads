@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install Ebook-Convert
-        # if: steps.cache-ebook-convert.outputs.cache-hit != 'true'
+        if: steps.cache-ebook-convert.outputs.cache-hit != 'true'
         run: sudo -v && wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
 
       - name: Install stable toolchain
