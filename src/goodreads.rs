@@ -4,6 +4,7 @@
 use async_trait::async_trait;
 use regex::Regex;
 use scraper::{Html, Selector};
+use serde::Deserialize;
 
 #[derive(Debug, PartialEq, Default)]
 pub struct BookIdentification {
@@ -25,8 +26,31 @@ pub trait BookIdentificationGetter {
 #[derive(Default)]
 pub struct Goodreads {}
 
+#[derive(Debug, Deserialize)]
+struct BookData {
+    isbn: Option<String>,
+}
+
 impl Goodreads {
     fn find_isbn_10(&self, fragment: &Html) -> Option<String> {
+        if let Some(isbn) = self.find_isbn_10_v1(fragment) {
+            return Some(isbn);
+        }
+
+        let selector = Selector::parse(r#"script[type="application/ld+json"]"#).ok()?;
+        for script_tag in fragment.select(&selector) {
+            let book: Result<BookData, _> = serde_json::from_str(&script_tag.inner_html());
+            if let Ok(book) = book {
+                if book.isbn.is_some() {
+                    return book.isbn;
+                }
+            }
+        }
+
+        None
+    }
+
+    fn find_isbn_10_v1(&self, fragment: &Html) -> Option<String> {
         let selector = Selector::parse(r#"span[itemprop="isbn"]"#).ok()?;
         let span = fragment.select(&selector).next()?;
         let div = span.parent()?.parent()?;
