@@ -50,6 +50,7 @@ impl Goodreads {
         None
     }
 
+    // Legacy way to get the ISBN, doesn't seem to work in 2024
     fn find_isbn_10_v1(&self, fragment: &Html) -> Option<String> {
         let selector = Selector::parse(r#"span[itemprop="isbn"]"#).ok()?;
         let span = fragment.select(&selector).next()?;
