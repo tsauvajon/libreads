@@ -215,12 +215,7 @@ mod tests {
             .get_book_info_from_goodreads_url("http://hello.world")
             .await;
 
-        assert_eq!(
-            Err(Error::HttpError(
-                "builder error: relative URL without a base".to_string()
-            )),
-            got
-        );
+        assert_eq!(Err(Error::HttpError("builder error".to_string())), got);
     }
 
     #[tokio::test]
@@ -408,11 +403,6 @@ mod tests {
             .get_book_info_from_goodreads_url("http://hello.world")
             .await;
 
-        assert_eq!(
-            Err(Error::HttpError(
-                "builder error: relative URL without a base".to_string()
-            )),
-            got
-        )
+        assert_eq!(Err(Error::HttpError("builder error".to_string())), got)
     }
 }

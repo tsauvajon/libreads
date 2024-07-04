@@ -125,12 +125,7 @@ async fn test_get_metadata_http_error() {
     };
     let got = libgen.get_metadata(&book_identification).await;
 
-    assert_eq!(
-        Err(Error::HttpError(
-            "builder error: relative URL without a base".to_string()
-        )),
-        got
-    );
+    assert_eq!(Err(Error::HttpError("builder error".to_string())), got);
 }
 
 pub fn find_most_relevant(books_metadata: &[LibgenMetadata]) -> Option<LibgenMetadata> {

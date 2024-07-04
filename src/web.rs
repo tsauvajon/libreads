@@ -5,12 +5,12 @@ use crate::{
     extension::Extension,
     libreads::{self, LibReads},
 };
+
 use actix_web::{
     error,
-    http::header::{ContentDisposition, DispositionParam, DispositionType},
+    http::header::{ContentDisposition, DispositionParam, DispositionType, CONTENT_TYPE},
     web, HttpResponse, Result,
 };
-use reqwest::header::CONTENT_TYPE;
 
 pub async fn download(
     libreads: web::Data<LibReads>,
@@ -68,17 +68,17 @@ pub struct Error {
 }
 
 impl error::ResponseError for Error {
-    fn status_code(&self) -> reqwest::StatusCode {
+    fn status_code(&self) -> actix_web::http::StatusCode {
         match self.name.as_str() {
-            "upstream" => reqwest::StatusCode::BAD_GATEWAY,
-            _ => reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+            "upstream" => actix_web::http::StatusCode::BAD_GATEWAY,
+            _ => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
 
 #[test]
 fn test_error_status_code() {
-    use reqwest::StatusCode;
+    use actix_web::http::StatusCode;
 
     for (name, want) in vec![
         ("upstream", StatusCode::BAD_GATEWAY),
@@ -196,9 +196,9 @@ mod tests {
         libgen::{LibgenMetadata, MockMetadataStore},
         library_dot_lol::{DownloadLinks, MockDownloadLinksStore},
     };
+    use actix_web::http::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
     use httpmock::{Method::GET, MockServer};
     use mockall::predicate::eq;
-    use reqwest::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
 
     #[actix_web::test]
     async fn test_download() {

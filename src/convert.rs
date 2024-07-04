@@ -172,12 +172,7 @@ async fn propagates_reqwest_errors() {
     };
 
     let got = download_as(book, Extension::Djvu).await;
-    assert_eq!(
-        Err(Error::Http(
-            "builder error: relative URL without a base".to_string(),
-        )),
-        got
-    );
+    assert_eq!(Err(Error::Http("builder error".to_string(),)), got);
 }
 
 async fn download(url: &str, filename: &str) -> Result<(), Error> {

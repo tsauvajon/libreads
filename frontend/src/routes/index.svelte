@@ -20,7 +20,7 @@
 	{#if loading}
 		<h2>Preparing ebook...</h2>
 	{:else}
-		<button on:click={downloadEbook}>Download Mobi</button>
+		<button on:click={downloadEbook}>Download Ebook</button>
 	{/if}
 </main>
 
